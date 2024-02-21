@@ -27,6 +27,8 @@ export interface LeverageFormsCalcsArgs {
   activeTab: FormTabs;
   flashBorrowReserveFlashLoanFeePercentage: Decimal;
   debtBorrowFactorPct: Decimal;
+  priceCollToDebt: Decimal;
+  priceDebtToColl: Decimal;
 }
 
 export interface FormsCalcsResult {
@@ -40,7 +42,6 @@ export interface FormsCalcsResult {
 
 export async function calculateMultiplyEffects(
   getPriceByTokenMintDecimal: (mint: PublicKey | string) => Decimal,
-  getJupiterPrice: (inputMint: PublicKey, outputMint: PublicKey) => Promise<Decimal>,
   {
     depositAmount,
     withdrawAmount,
@@ -53,11 +54,10 @@ export async function calculateMultiplyEffects(
     activeTab,
     flashBorrowReserveFlashLoanFeePercentage,
     debtBorrowFactorPct,
+    priceCollToDebt,
+    priceDebtToColl,
   }: LeverageFormsCalcsArgs
 ): Promise<FormsCalcsResult> {
-  const priceCollToDebt = await getJupiterPrice(collTokenMint, debtTokenMint);
-  const priceDebtToColl = await getJupiterPrice(debtTokenMint, collTokenMint);
-
   // calculate estimations for deposit operation
   const {
     adjustDepositPosition: depositModeEstimatedDepositAmount,
@@ -89,7 +89,7 @@ export async function calculateMultiplyEffects(
   const {
     adjustDepositPosition: adjustModeEstimatedDepositAmount,
     adjustBorrowPosition: adjustModeEstimateBorrowAmount,
-  } = await estimateAdjustMode(priceCollToDebt, {
+  } = estimateAdjustMode(priceCollToDebt, {
     targetLeverage,
     debtTokenMint,
     collTokenMint,
@@ -247,8 +247,9 @@ export function calcWithdrawAmounts(params: WithdrawParams): WithdrawResult {
 
   const initialDepositInCollateralToken = currentDepositPosition.minus(currentBorrowPosition.div(priceCollToDebt));
 
-  const amountToWithdrawDepositToken =
-    selectedTokenMint.toString() === collTokenMint.toString() ? withdrawAmount : withdrawAmount.div(priceCollToDebt);
+  const amountToWithdrawDepositToken = selectedTokenMint.equals(collTokenMint)
+    ? withdrawAmount
+    : withdrawAmount.div(priceCollToDebt);
 
   const targetDeposit = initialDepositInCollateralToken.minus(amountToWithdrawDepositToken).mul(targetLeverage);
 
@@ -373,7 +374,7 @@ export const estimateDepositMode = ({
   flashLoanFee,
   slippagePct = new Decimal(0),
 }: UseTransactionInfoStats) => {
-  const isDepositingCollToken = selectedTokenMint.toString() === collTokenMint.toString();
+  const isDepositingCollToken = selectedTokenMint.equals(collTokenMint);
 
   const finalCollTokenAmount = isDepositingCollToken
     ? new Decimal(amount).mul(targetLeverage).toNumber()
