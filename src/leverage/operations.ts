@@ -270,6 +270,7 @@ export const getDepositWithLeverageSwapInputs = (props: {
 
 export const getDepositWithLeverageIxns = async (props: {
   connection: Connection;
+  budgetAndPriorityFeeIxns?: TransactionInstruction[];
   user: PublicKey;
   amount: Decimal;
   selectedTokenMint: PublicKey;
@@ -289,6 +290,7 @@ export const getDepositWithLeverageIxns = async (props: {
 }): Promise<{ ixns: TransactionInstruction[]; lookupTablesAddresses: PublicKey[]; swapInputs: SwapInputs }> => {
   const {
     connection,
+    budgetAndPriorityFeeIxns,
     user,
     amount,
     selectedTokenMint,
@@ -377,7 +379,7 @@ export const getDepositWithLeverageIxns = async (props: {
     mintsToCreateAtas = [collTokenMint, debtTokenMint, collReserve!.getCTokenMint()];
   }
 
-  const budgetIxns = getComputeBudgetAndPriorityFeeIxns(3000000);
+  const budgetIxns = budgetAndPriorityFeeIxns || getComputeBudgetAndPriorityFeeIxns(3000000);
   const {
     atas: [collTokenAta, debtTokenAta],
     createAtasIxns,
@@ -634,6 +636,7 @@ export const getWithdrawWithLeverageSwapInputs = (props: {
 
 export const getWithdrawWithLeverageIxns = async (props: {
   connection: Connection;
+  budgetAndPriorityFeeIxns: TransactionInstruction[];
   user: PublicKey;
   amount: Decimal;
   deposited: Decimal;
@@ -654,6 +657,7 @@ export const getWithdrawWithLeverageIxns = async (props: {
 }): Promise<{ ixns: TransactionInstruction[]; lookupTablesAddresses: PublicKey[]; swapInputs: SwapInputs }> => {
   const {
     connection,
+    budgetAndPriorityFeeIxns,
     user,
     amount,
     deposited,
@@ -772,7 +776,7 @@ export const getWithdrawWithLeverageIxns = async (props: {
   }
   closeAtasIxns.push(...closeWsolAtaIxns);
 
-  const budgetIxns = getComputeBudgetAndPriorityFeeIxns(3000000);
+  const budgetIxns = budgetAndPriorityFeeIxns || getComputeBudgetAndPriorityFeeIxns(3000000);
 
   // TODO: marius test this with shorting leverage and with leverage looping
   // This is here so that we have enough wsol to repay in case the kAB swapped to sol after estimates is not enough
@@ -953,6 +957,7 @@ export const getAdjustLeverageSwapInputs = (props: {
 
 export const getAdjustLeverageIxns = async (props: {
   connection: Connection;
+  budgetAndPriorityFeeIxns: TransactionInstruction[];
   user: PublicKey;
   kaminoMarket: KaminoMarket;
   priceDebtToColl: Decimal;
@@ -973,6 +978,7 @@ export const getAdjustLeverageIxns = async (props: {
 }) => {
   const {
     connection,
+    budgetAndPriorityFeeIxns,
     user,
     kaminoMarket,
     priceDebtToColl,
@@ -1037,11 +1043,12 @@ export const getAdjustLeverageIxns = async (props: {
   if (isDeposit) {
     console.log('Increasing leaverage');
     // TODO: marius why are we not using both adjustDepositPosition & adjustBorrowPosition
-    const res = await getIncreaseLeverageIxns(
+    const res = await getIncreaseLeverageIxns({
       connection,
+      budgetAndPriorityFeeIxns,
       user,
       kaminoMarket,
-      adjustDepositPosition,
+      depositAmount: adjustDepositPosition,
       collTokenMint,
       debtTokenMint,
       slippagePct,
@@ -1053,19 +1060,20 @@ export const getAdjustLeverageIxns = async (props: {
       priceAinB,
       kamino,
       obligationTypeTagOverride,
-      userObligation
-    );
+      obligation: userObligation,
+    });
     ixns = res.ixns;
     lookupTablesAddresses = res.lookupTablesAddresses;
     swapInputs = res.swapInputs;
   } else {
     console.log('Decreasing leverage');
-    const res = await getDecreaseLeverageIxns(
+    const res = await getDecreaseLeverageIxns({
       connection,
+      budgetAndPriorityFeeIxns,
       user,
       kaminoMarket,
-      Decimal.abs(adjustDepositPosition),
-      Decimal.abs(adjustBorrowPosition),
+      withdrawAmount: Decimal.abs(adjustDepositPosition),
+      repayAmount: Decimal.abs(adjustBorrowPosition),
       collTokenMint,
       debtTokenMint,
       slippagePct,
@@ -1074,8 +1082,8 @@ export const getAdjustLeverageIxns = async (props: {
       isKtoken,
       kamino,
       obligationTypeTagOverride,
-      userObligation
-    );
+      obligation: userObligation,
+    });
     ixns = res.ixns;
     lookupTablesAddresses = res.lookupTablesAddresses;
     swapInputs = res.swapInputs;
@@ -1091,24 +1099,44 @@ export const getAdjustLeverageIxns = async (props: {
 /**
  * Deposit and borrow tokens if leverage increased
  */
-export const getIncreaseLeverageIxns = async (
-  connection: Connection,
-  user: PublicKey,
-  kaminoMarket: KaminoMarket,
-  depositAmount: Decimal,
-  collTokenMint: PublicKey,
-  debtTokenMint: PublicKey,
-  slippagePct: number,
-  priceDebtToColl: Decimal,
-  priceCollToDebt: Decimal,
-  swapper: SwapIxnsProvider,
-  referrer: PublicKey,
-  isKtoken: IsKtokenProvider,
-  priceAinB: PriceAinBProvider,
-  kamino: Kamino | undefined,
-  obligationTypeTagOverride: ObligationTypeTag = 1,
-  obligation: KaminoObligation | null
-) => {
+export const getIncreaseLeverageIxns = async (props: {
+  connection: Connection;
+  budgetAndPriorityFeeIxns: TransactionInstruction[];
+  user: PublicKey;
+  kaminoMarket: KaminoMarket;
+  depositAmount: Decimal;
+  collTokenMint: PublicKey;
+  debtTokenMint: PublicKey;
+  slippagePct: number;
+  priceDebtToColl: Decimal;
+  priceCollToDebt: Decimal;
+  swapper: SwapIxnsProvider;
+  referrer: PublicKey;
+  isKtoken: IsKtokenProvider;
+  priceAinB: PriceAinBProvider;
+  kamino: Kamino | undefined;
+  obligationTypeTagOverride: ObligationTypeTag;
+  obligation: KaminoObligation | null;
+}) => {
+  const {
+    connection,
+    budgetAndPriorityFeeIxns,
+    user,
+    kaminoMarket,
+    depositAmount,
+    collTokenMint,
+    debtTokenMint,
+    slippagePct,
+    priceDebtToColl,
+    priceCollToDebt,
+    swapper,
+    referrer,
+    isKtoken,
+    priceAinB,
+    kamino,
+    obligationTypeTagOverride = 1,
+    obligation,
+  } = props;
   const collReserve = kaminoMarket.getReserveByMint(collTokenMint);
   const debtReserve = kaminoMarket.getReserveByMint(debtTokenMint);
   const collIsKtoken = await isKtoken(collTokenMint);
@@ -1123,7 +1151,7 @@ export const getIncreaseLeverageIxns = async (
   const strategy = collIsKtoken ? await kamino?.getStrategyByKTokenMint(collTokenMint) : undefined;
 
   // 1. Create atas & budget txns
-  const budgetIxns = getComputeBudgetAndPriorityFeeIxns(3000000);
+  const budgetIxns = budgetAndPriorityFeeIxns || getComputeBudgetAndPriorityFeeIxns(3000000);
   let mintsToCreateAtas: PublicKey[] = [];
   if (collIsKtoken) {
     const secondTokenAta = strategy?.strategy.tokenAMint.equals(debtTokenMint)
@@ -1302,22 +1330,41 @@ export const getIncreaseLeverageIxns = async (
 /**
  * Withdraw and repay tokens if leverage decreased
  */
-export const getDecreaseLeverageIxns = async (
-  connection: Connection,
-  user: PublicKey,
-  kaminoMarket: KaminoMarket,
-  withdrawAmount: Decimal,
-  repayAmount: Decimal,
-  collTokenMint: PublicKey,
-  debtTokenMint: PublicKey,
-  slippagePct: number,
-  swapper: SwapIxnsProvider,
-  referrer: PublicKey,
-  isKtoken: IsKtokenProvider,
-  kamino: Kamino | undefined,
-  obligationTypeTagOverride: ObligationTypeTag = 1,
-  obligation: KaminoObligation | null
-) => {
+export const getDecreaseLeverageIxns = async (props: {
+  connection: Connection;
+  budgetAndPriorityFeeIxns: TransactionInstruction[];
+  user: PublicKey;
+  kaminoMarket: KaminoMarket;
+  withdrawAmount: Decimal;
+  repayAmount: Decimal;
+  collTokenMint: PublicKey;
+  debtTokenMint: PublicKey;
+  slippagePct: number;
+  swapper: SwapIxnsProvider;
+  referrer: PublicKey;
+  isKtoken: IsKtokenProvider;
+  kamino: Kamino | undefined;
+  obligationTypeTagOverride: ObligationTypeTag;
+  obligation: KaminoObligation | null;
+}) => {
+  const {
+    connection,
+    budgetAndPriorityFeeIxns,
+    user,
+    kaminoMarket,
+    withdrawAmount,
+    repayAmount,
+    collTokenMint,
+    debtTokenMint,
+    slippagePct,
+    swapper,
+    referrer,
+    isKtoken,
+    kamino,
+    obligationTypeTagOverride = 1,
+    obligation,
+  } = props;
+
   console.log(
     'getDecreaseLeverageIxns',
     toJson({ withdrawAmount, repayAmount, collTokenMint, debtTokenMint, slippagePct })
@@ -1331,7 +1378,7 @@ export const getDecreaseLeverageIxns = async (
   const strategy = collIsKtoken ? await kamino?.getStrategyByKTokenMint(collTokenMint) : undefined;
 
   // 1. Create atas & budget txns
-  const budgetIxns = getComputeBudgetAndPriorityFeeIxns(3000000);
+  const budgetIxns = budgetAndPriorityFeeIxns || getComputeBudgetAndPriorityFeeIxns(3000000);
   let mintsToCreateAtas: PublicKey[] = [];
   if (collIsKtoken) {
     const secondTokenAta = strategy?.strategy.tokenAMint.equals(debtTokenMint)
