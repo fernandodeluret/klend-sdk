@@ -1,6 +1,7 @@
 import { KaminoAction, KaminoMarket, KaminoObligation, numberToLamportsDecimal } from '../classes';
 import { SwapInputs, SwapIxnsProvider, getFlashLoanInstructions, toJson } from '../leverage';
 import {
+  PublicKeySet,
   U64_MAX,
   getAtasWithCreateIxnsIfMissing,
   getComputeBudgetAndPriorityFeeIxns,
@@ -104,7 +105,13 @@ export const getRepayWithCollIxns = async (props: {
   referrer: PublicKey;
   swapper: SwapIxnsProvider;
   currentSlot: number;
-}): Promise<{ ixns: TransactionInstruction[]; lookupTablesAddresses: PublicKey[]; swapInputs: SwapInputs }> => {
+  getTotalKlendAccountsOnly: boolean;
+}): Promise<{
+  ixns: TransactionInstruction[];
+  lookupTablesAddresses: PublicKey[];
+  swapInputs: SwapInputs;
+  totalKlendAccounts: number;
+}> => {
   const {
     kaminoMarket,
     budgetAndPriorityFeeIxns,
@@ -119,6 +126,7 @@ export const getRepayWithCollIxns = async (props: {
     referrer,
     swapper,
     currentSlot,
+    getTotalKlendAccountsOnly,
   } = props;
 
   const connection = kaminoMarket.getConnection();
@@ -194,6 +202,37 @@ export const getRepayWithCollIxns = async (props: {
     referrer
   );
 
+  const ixns = [
+    ...budgetIxns,
+    ...createAtasIxns,
+    ...[flashBorrowIxn],
+    ...repayAndWithdrawAction.setupIxs,
+    ...[repayAndWithdrawAction.lendingIxs[0]],
+    ...repayAndWithdrawAction.inBetweenIxs,
+    ...[repayAndWithdrawAction.lendingIxs[1]],
+    ...repayAndWithdrawAction.cleanupIxs,
+    ...[flashRepayIxn],
+    ...closeAtasIxns,
+  ];
+
+  const uniqueAccounts = new PublicKeySet<PublicKey>([]);
+  ixns.forEach((ixn) => {
+    ixn.keys.forEach((key) => {
+      uniqueAccounts.add(key.pubkey);
+    });
+  });
+  const totalKlendAccounts = uniqueAccounts.toArray().length;
+
+  // return early to avoid extra swapper calls
+  if (getTotalKlendAccountsOnly) {
+    return {
+      ixns: [],
+      lookupTablesAddresses: [],
+      swapInputs: { inputAmountLamports: 0, inputMint: PublicKey.default, outputMint: PublicKey.default },
+      totalKlendAccounts: totalKlendAccounts,
+    };
+  }
+
   console.log(
     'Expected to swap in',
     calcs.collToSwapIn.toString(),
@@ -234,5 +273,6 @@ export const getRepayWithCollIxns = async (props: {
     ],
     lookupTablesAddresses,
     swapInputs,
+    totalKlendAccounts,
   };
 };

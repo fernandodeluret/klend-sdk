@@ -133,6 +133,7 @@ export const depositLeverageTestAdapter = async (
     obligationTypeTagOverride: ObligationTypeTag.Multiply,
     obligation,
     currentSlot,
+    getTotalKlendAccountsOnly: false,
   });
 
   // Create lookup table
@@ -248,6 +249,7 @@ export const withdrawLeverageTestAdapter = async (
     obligationTypeTagOverride: ObligationTypeTag.Multiply,
     obligation,
     currentSlot,
+    getTotalKlendAccountsOnly: false,
   });
 
   // Create lookup table
@@ -352,6 +354,7 @@ export const adjustLeverageTestAdapter = async (
     obligationTypeTagOverride: ObligationTypeTag.Multiply,
     obligation,
     currentSlot,
+    getTotalKlendAccountsOnly: false,
   });
 
   // Create lookup table
