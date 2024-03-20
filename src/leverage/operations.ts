@@ -287,6 +287,7 @@ export const getDepositWithLeverageIxns = async (props: {
   kamino: Kamino | undefined;
   obligationTypeTagOverride: ObligationTypeTag;
   obligation: KaminoObligation | null;
+  currentSlot: number;
 }): Promise<{ ixns: TransactionInstruction[]; lookupTablesAddresses: PublicKey[]; swapInputs: SwapInputs }> => {
   const {
     connection,
@@ -307,6 +308,7 @@ export const getDepositWithLeverageIxns = async (props: {
     kamino,
     obligationTypeTagOverride = 1,
     obligation,
+    currentSlot,
   } = props;
   const collReserve = kaminoMarket.getReserveByMint(collTokenMint);
   const debtReserve = kaminoMarket.getReserveByMint(debtTokenMint);
@@ -451,7 +453,8 @@ export const getDepositWithLeverageIxns = async (props: {
     false,
     true, // emode
     false, // to be checked and created in a setup tx in the UI
-    referrer
+    referrer,
+    currentSlot
   );
 
   console.log(
@@ -655,6 +658,7 @@ export const getWithdrawWithLeverageIxns = async (props: {
   kamino: Kamino | undefined;
   obligationTypeTagOverride: ObligationTypeTag;
   obligation: KaminoObligation | null;
+  currentSlot: number;
 }): Promise<{ ixns: TransactionInstruction[]; lookupTablesAddresses: PublicKey[]; swapInputs: SwapInputs }> => {
   const {
     connection,
@@ -676,6 +680,7 @@ export const getWithdrawWithLeverageIxns = async (props: {
     kamino,
     obligationTypeTagOverride,
     obligation,
+    currentSlot,
   } = props;
 
   const collReserve = kaminoMarket.getReserveByMint(collTokenMint);
@@ -717,7 +722,6 @@ export const getWithdrawWithLeverageIxns = async (props: {
       });
 
   // Add slippage for the accrued interest rate amount
-  const currentSlot = await kaminoMarket.getConnection().getSlot();
   const userObligation = obligation
     ? obligation
     : await kaminoMarket.getObligationByAddress(obligationType.toPda(kaminoMarket.getAddress(), user));
@@ -841,6 +845,7 @@ export const getWithdrawWithLeverageIxns = async (props: {
     isClosingPosition ? U64_MAX : toLamports(depositTokenWithdrawAmount, collReserve!.stats.decimals).ceil().toString(),
     collTokenMint,
     user,
+    currentSlot,
     userObligation ? userObligation : obligationType,
     0,
     false,
@@ -975,6 +980,7 @@ export const getAdjustLeverageIxns = async (props: {
   kamino: Kamino | undefined;
   obligationTypeTagOverride: ObligationTypeTag;
   obligation: KaminoObligation | null;
+  currentSlot: number;
 }) => {
   const {
     connection,
@@ -996,6 +1002,7 @@ export const getAdjustLeverageIxns = async (props: {
     kamino,
     obligationTypeTagOverride,
     obligation,
+    currentSlot,
   } = props;
 
   const collReserve = kaminoMarket.getReserveByMint(collTokenMint);
@@ -1059,6 +1066,7 @@ export const getAdjustLeverageIxns = async (props: {
       kamino,
       obligationTypeTagOverride,
       obligation: userObligation,
+      currentSlot,
     });
     ixns = res.ixns;
     lookupTablesAddresses = res.lookupTablesAddresses;
@@ -1081,6 +1089,7 @@ export const getAdjustLeverageIxns = async (props: {
       kamino,
       obligationTypeTagOverride,
       obligation: userObligation,
+      currentSlot,
     });
     ixns = res.ixns;
     lookupTablesAddresses = res.lookupTablesAddresses;
@@ -1115,6 +1124,7 @@ export const getIncreaseLeverageIxns = async (props: {
   kamino: Kamino | undefined;
   obligationTypeTagOverride: ObligationTypeTag;
   obligation: KaminoObligation | null;
+  currentSlot: number;
 }) => {
   const {
     connection,
@@ -1134,6 +1144,7 @@ export const getIncreaseLeverageIxns = async (props: {
     kamino,
     obligationTypeTagOverride = 1,
     obligation,
+    currentSlot,
   } = props;
   const collReserve = kaminoMarket.getReserveByMint(collTokenMint);
   const debtReserve = kaminoMarket.getReserveByMint(debtTokenMint);
@@ -1213,7 +1224,8 @@ export const getIncreaseLeverageIxns = async (props: {
     false,
     false,
     false, // to be checked and create in a setup tx in the UI (won't be the case for adjust anyway as this would be created in deposit)
-    referrer
+    referrer,
+    currentSlot
   );
 
   // 4. Get swap estimations to understand how much we need to borrow from borrow reserve
@@ -1236,6 +1248,7 @@ export const getIncreaseLeverageIxns = async (props: {
     false,
     false, // to be checked and create in a setup tx in the UI (won't be the case for adjust anyway as this would be created in deposit)
     referrer,
+    currentSlot,
     debtTokenAta
   );
 
@@ -1345,6 +1358,7 @@ export const getDecreaseLeverageIxns = async (props: {
   kamino: Kamino | undefined;
   obligationTypeTagOverride: ObligationTypeTag;
   obligation: KaminoObligation | null;
+  currentSlot: number;
 }) => {
   const {
     connection,
@@ -1362,6 +1376,7 @@ export const getDecreaseLeverageIxns = async (props: {
     kamino,
     obligationTypeTagOverride = 1,
     obligation,
+    currentSlot,
   } = props;
 
   console.log(
@@ -1443,6 +1458,7 @@ export const getDecreaseLeverageIxns = async (props: {
     debtTokenMint,
     user,
     obligation ? obligation : obligationType,
+    currentSlot,
     undefined,
     0,
     false,
@@ -1467,7 +1483,8 @@ export const getDecreaseLeverageIxns = async (props: {
     false,
     false,
     false, // to be checked and create in a setup tx in the UI (won't be the case for adjust anyway as this would be created in deposit)
-    referrer
+    referrer,
+    currentSlot
   );
 
   let withdrawSwapper: SwapIxnsProvider;
