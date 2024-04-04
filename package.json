@@ -1,6 +1,6 @@
 {
   "name": "@hubbleprotocol/kamino-lending-sdk",
-  "version": "2.9.11",
+  "version": "2.9.12",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
