@@ -204,6 +204,8 @@ export const getRepayWithCollIxns = async (props: {
     programId: kaminoMarket.programId,
   });
 
+  const requestElevationGroup = obligation.state.elevationGroup !== 0 ? true : false;
+
   // 2. Repay using the flash borrowed funds & withdraw collateral to swap and pay the flash loan
   const repayAndWithdrawAction = await KaminoAction.buildRepayAndWithdrawTxns(
     kaminoMarket,
@@ -218,7 +220,7 @@ export const getRepayWithCollIxns = async (props: {
     obligation,
     0,
     false,
-    undefined,
+    requestElevationGroup,
     undefined,
     isClosingPosition,
     referrer

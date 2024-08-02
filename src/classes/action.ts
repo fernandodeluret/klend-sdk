@@ -1763,7 +1763,8 @@ export class KaminoAction {
 
         if (
           new Decimal(repayObligationLiquidity.amount).lte(new Decimal(this.amount.toString())) &&
-          this.obligation!.borrows.size === 1
+          this.obligation!.borrows.size === 1 &&
+          this.obligation?.state.elevationGroup !== 0
         ) {
           this.addRefreshReserveIxs(allReservesExcludingCurrent, 'cleanup');
           // Skip the borrow reserve, since we repay in the same tx
@@ -1826,7 +1827,6 @@ export class KaminoAction {
           }
         }
       }
-
       if (addAsSupportIx === 'setup') {
         // If this is an setup ixn (therefore not an in-between), it means it's either a one off action
         // or the first of a two-token-action
@@ -2207,8 +2207,8 @@ export class KaminoAction {
   }
 
   private addRefreshFarmsCleanupTxnIxsToCleanupIxs() {
-    this.cleanupIxs.splice(this.cleanupIxs.length - 1, 0, ...this.refreshFarmsCleanupTxnIxs);
-    this.cleanupIxsLabels.splice(this.cleanupIxsLabels.length - 1, 0, ...this.refreshFarmsCleanupTxnIxsLabels);
+    this.cleanupIxs.splice(0, 0, ...this.refreshFarmsCleanupTxnIxs);
+    this.cleanupIxsLabels.splice(0, 0, ...this.refreshFarmsCleanupTxnIxsLabels);
   }
 
   private async addInitObligationForFarm(
