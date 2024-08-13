@@ -55,8 +55,6 @@ yarn kamino-manager add-asset-to-market --market market_address --mint token_min
 - **staging** - is a boolean flag. If set, staging programs will be used
 - **multisig** - address string to be used as admin PublicKey. To be used in conjunction with multisig mode
 
-
-
 #### Download a reserve config
 
 In order to update a reserve config, you need the latest reserve configuration, to modify. To get the latest, this command can be used:
@@ -65,7 +63,7 @@ In order to update a reserve config, you need the latest reserve configuration, 
 yarn kamino-manager download-reserve-config --reserve reserve_address --staging
 ```
 
-- **reserve** - address to update the reserve config for
+- **reserve** - address to download the reserve config for
 - **staging** - is a boolean flag. If set, staging programs will be used
 
 #### Update a reserve config
@@ -85,6 +83,49 @@ yarn kamino-manager update-reserve-config --reserve reserve_address --reserve-co
 - **staging** - is a boolean flag. If set, staging programs will be used
 
 A reserve config example can be found [here](https://github.com/Kamino-Finance/klend-sdk/blob/master/configs/reserve_config_example.json)
+
+#### Download a lending market configuration
+
+```
+yarn kamino-manager download-lending-market-config --lending-market lending_market_address --staging
+```
+
+- **lending-market** - address to download the lending market config for
+- **staging** - is a boolean flag. If set, staging programs will be used
+
+#### Download a lending market together with all the associated reserves 
+
+```
+yarn kamino-manager download-lending-market-config-and-all-reserves-configs --lending-market lending_market_address --staging
+```
+
+- **lending-market** - address to download the lending market config for
+- **staging** - is a boolean flag. If set, staging programs will be used
+
+#### Update a lending market
+```
+yarn kamino-manager update-lending-market-from-config --lending-market lending_market_address --staging --lending-market-config-path ./configs/lending_market_address/market-lending_market_address.json --mode inspect --staging
+```
+
+- **lending-market** - address of market to update the config for
+- **lending-market-config-path** - the path to the config file to be used
+- **mode** - can have these values:
+  - *inspect* - will print an url to the explorer txn inspection, where it can be simulated
+  - *simulate* - will print the simulation outputs 
+  - *execute* - will execute the transaction
+  - *multisig* - will print the bs58 transaction to be used within a multisig
+  It is recommended to **1. inspect/simulate** and then **2. execute/multisig**
+- **staging** - is a boolean flag. If set, staging programs will be used
+
+#### Update a lending market owner
+All markets should be owned by a multisig once they are publicly used and maintained. 
+However, to start of with, preparing the configuration and adding all the necessary reserves would take longer under a multisig.
+In order to migrate from a hot wallet (private key on a local machine) you first need to set the lending_market_owner_cached to the new admin (ideally multisig) using the command above, followed by running the following command:
+
+```
+yarn kamino-manager update-lending-market-owner --lending-market lending_market_address --staging --mode multisig
+```
+**To note** this command can only be executed by the current market lending_market_owner_cached and it will set the lending_market_owner to that address.
 
 #### Create a vault 
 ```
@@ -123,6 +164,22 @@ yarn kamino-manager update-vault-reserve-allocation --vault vault_address --rese
 This can be used to get scope oracle mappings to be used when configuring the reserve oracle config.
 ```
 yarn kamino-manager get-oracle-mappings
+```
+
+#### Useful to know
+
+**Exploring the created markets** on the webapp can be done by going to 
+https://app.kamino.finance/?STAGING_PROGRAM&market=market_address for the staging program
+https://app.kamino.finance/?market=market_address for the prod program
+
+**Creating a new keypair to use as an admin** can be achieved by running the following:
+```
+solana-keygen new -o path_to_private_key.json
+```
+make sure to keep the private key **private** and only shar ethe public key.
+If you forget the publickey you can get it by running the following:
+```
+solana-keygen pubkey path_to_private_key.json
 ```
 
 ## 2. Kamino Manager Class 

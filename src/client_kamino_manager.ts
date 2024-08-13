@@ -13,8 +13,10 @@ import {
 import {
   AssetReserveConfigCli,
   Chain,
+  DEFAULT_RECENT_SLOT_DURATION_MS,
   encodeTokenName,
   KaminoManager,
+  KaminoMarket,
   KaminoVault,
   KaminoVaultConfig,
   LendingMarket,
@@ -301,6 +303,174 @@ async function main() {
     const oracleConfigs = await kaminoManager.getScopeOracleConfigs();
     console.log('oracleConfigs', JSON.parse(JSON.stringify(oracleConfigs)));
   });
+
+  commands
+    .command('download-lending-market-config')
+    .requiredOption('--lending-market <string>', 'Lending Market Address')
+    .option(`--staging`, 'If true, will use the staging programs')
+    .action(async ({ lendingMarket, staging }) => {
+      const env = initializeClient(false, staging);
+      const lendingMarketAddress = new PublicKey(lendingMarket);
+      const lendingMarketState = await LendingMarket.fetch(
+        env.provider.connection,
+        lendingMarketAddress,
+        env.kLendProgramId
+      );
+
+      if (!lendingMarketState) {
+        throw new Error('Lending Market not found');
+      }
+
+      fs.mkdirSync('./configs/' + lendingMarketAddress.toBase58(), { recursive: true });
+
+      const lendingMarketConfigForFile = lendingMarketState.toJSON();
+
+      fs.writeFileSync(
+        './configs/' + lendingMarketAddress.toBase58() + '/market-' + lendingMarketAddress.toBase58() + '.json',
+        JSON.stringify(lendingMarketConfigForFile, null, 2)
+      );
+    });
+
+  commands
+    .command('download-lending-market-config-and-all-reserves-configs')
+    .requiredOption('--lending-market <string>', 'Lending Market Address')
+    .option(`--staging`, 'If true, will use the staging programs')
+    .action(async ({ lendingMarket, staging }) => {
+      const env = initializeClient(false, staging);
+      const decoder = new TextDecoder('utf-8');
+      const lendingMarketAddress = new PublicKey(lendingMarket);
+
+      const kaminoMarket = await KaminoMarket.load(
+        env.provider.connection,
+        lendingMarketAddress,
+        DEFAULT_RECENT_SLOT_DURATION_MS,
+        env.kLendProgramId
+      );
+
+      if (!kaminoMarket) {
+        throw new Error('Lending Market not found');
+      }
+
+      const lendingMarketState = await LendingMarket.fetch(
+        env.provider.connection,
+        lendingMarketAddress,
+        env.kLendProgramId
+      );
+
+      if (!lendingMarketState) {
+        throw new Error('Lending Market not found');
+      }
+
+      fs.mkdirSync('./configs/' + lendingMarketAddress.toBase58(), { recursive: true });
+
+      const lendingMarketConfigForFile = lendingMarketState.toJSON();
+
+      fs.writeFileSync(
+        './configs/' + lendingMarketAddress.toBase58() + '/market-' + lendingMarketAddress.toBase58() + '.json',
+        JSON.stringify(lendingMarketConfigForFile, null, 2)
+      );
+
+      kaminoMarket.reserves.forEach(async (reserve) => {
+        const reserveState = reserve.state;
+        const reserveName = decoder.decode(Uint8Array.from(reserveState.config.tokenInfo.name)).replace(/\0/g, '');
+
+        const reserveConfigDisplay = parseReserveConfigToFile(reserveState.config);
+
+        fs.writeFileSync(
+          './configs/' + lendingMarketAddress.toBase58() + '/' + reserveName + '.json',
+          JSON.stringify(reserveConfigDisplay, null, 2)
+        );
+      });
+    });
+
+  commands
+    .command('update-lending-market-from-config')
+    .requiredOption('--lending-market <string>', 'Lending Market address')
+    .requiredOption('--lending-market-config-path <string>', 'Path for the market config')
+    .requiredOption(
+      `--mode <string>`,
+      'simulate - to print txn simulation, inspect - to get txn simulation in explorer, execute - execute txn, multisig - to get bs58 txn for multisig usage'
+    )
+    .option(`--staging`, 'If true, will use the staging programs')
+    .action(async ({ lendingMarket, lendingMarketConfigPath, mode, staging }) => {
+      const env = initializeClient(mode === 'multisig', staging);
+      const lendingMarketAddress = new PublicKey(lendingMarket);
+      const lendingMarketState = await LendingMarket.fetch(
+        env.provider.connection,
+        lendingMarketAddress,
+        env.kLendProgramId
+      );
+      if (!lendingMarketState) {
+        throw new Error('Lending Market not found');
+      }
+      const marketWithAddress = {
+        address: lendingMarketAddress,
+        state: lendingMarketState,
+      };
+
+      if (mode === 'multisig') {
+        throw new Error('If using multisig mode, multisig is required');
+      }
+
+      const kaminoManager = new KaminoManager(env.provider.connection, env.kLendProgramId, env.kVaultProgramId);
+
+      const newLendingMarket = LendingMarket.fromJSON(JSON.parse(fs.readFileSync(lendingMarketConfigPath, 'utf8')));
+
+      const ixns = kaminoManager.updateLendingMarketIxs(marketWithAddress, newLendingMarket);
+
+      // executing 6 ixns in a txn to make sure they fit
+      for (let ixnIndex = 0; ixnIndex < ixns.length; ixnIndex += 6) {
+        const ixnToExecute = ixns.slice(ixnIndex, ixnIndex + 6);
+        const _updateLendingMarketSig = await processTxn(env.client, env.payer, ixnToExecute, mode, 2500, [], 400_000);
+      }
+
+      mode === 'execute' &&
+        console.log('Reserve Updated with new config -> ', JSON.parse(JSON.stringify(newLendingMarket)));
+    });
+
+  commands
+    .command('update-lending-market-owner')
+    .requiredOption('--lending-market <string>', 'Lending Market address')
+    .requiredOption(
+      `--mode <string>`,
+      'simulate - to print txn simulation, inspect - to get txn simulation in explorer, execute - execute txn, multisig - to get bs58 txn for multisig usage'
+    )
+    .option(`--staging`, 'If true, will use the staging programs')
+    .action(async ({ lendingMarket, mode, staging }) => {
+      const env = initializeClient(mode === 'multisig', staging);
+      const lendingMarketAddress = new PublicKey(lendingMarket);
+      const lendingMarketState = await LendingMarket.fetch(
+        env.provider.connection,
+        lendingMarketAddress,
+        env.kLendProgramId
+      );
+      if (!lendingMarketState) {
+        throw new Error('Lending Market not found');
+      }
+      const marketWithAddress = {
+        address: lendingMarketAddress,
+        state: lendingMarketState,
+      };
+      if (!lendingMarketState) {
+        throw new Error('Lending Market not found');
+      }
+
+      if (mode === 'multisig') {
+        throw new Error('If using multisig mode, multisig is required');
+      }
+
+      const kaminoManager = new KaminoManager(env.provider.connection, env.kLendProgramId, env.kVaultProgramId);
+
+      const ixn = kaminoManager.updateLendingMarketOwnerIxs(marketWithAddress);
+
+      const _updateLendingMarketSig = await processTxn(env.client, env.payer, [ixn], mode, 2500, [], 400_000);
+
+      mode === 'execute' &&
+        console.log(
+          'Lending market admin updated to the new admin -> ',
+          JSON.parse(JSON.stringify(lendingMarketState.lendingMarketOwnerCached))
+        );
+    });
 
   await commands.parseAsync();
 }

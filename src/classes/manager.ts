@@ -27,12 +27,18 @@ import {
   ReserveWithAddress,
   ScopeOracleConfig,
   updateEntireReserveConfigIx,
+  updateLendingMarket,
+  UpdateLendingMarketAccounts,
+  UpdateLendingMarketArgs,
+  updateLendingMarketOwner,
+  UpdateLendingMarketOwnerAccounts,
 } from '../lib';
 import { PROGRAM_ID } from '../idl_codegen/programId';
 import { Scope, TokenMetadatas, U16_MAX } from '@hubbleprotocol/scope-sdk';
 import BN from 'bn.js';
-import { ReserveConfig } from '../idl_codegen/types';
+import { ElevationGroup, ReserveConfig, UpdateLendingMarketMode } from '../idl_codegen/types';
 import Decimal from 'decimal.js';
+import * as anchor from '@coral-xyz/anchor';
 
 /**
  * KaminoManager is a class that provides a high-level interface to interact with the Kamino Lend and Kamino Vault programs, in order to create and manage a market, as well as vaults
@@ -415,4 +421,345 @@ export class KaminoManager {
 
     return scopeOracleConfigs;
   }
+
+  /**
+   * This retruns an array of instructions to be used to update the lending market configurations
+   * @param marketWithAddress - the market address and market state object
+   * @param newMarket - the lending market state with the new configuration - to be build we new config options from the previous state
+   * @returns - an array of instructions
+   */
+  updateLendingMarketIxs(marketWithAddress: MarketWithAddress, newMarket: LendingMarket): TransactionInstruction[] {
+    return parseForChangesMarketConfigAndGetIxs(marketWithAddress, newMarket, this._kaminoLendProgramId);
+  }
+
+  /**
+   * This retruns an instruction to be used to update the market owner. This can only be executed by the current lendingMarketOwnerCached
+   * @param marketWithAddress - the market address and market state object
+   * @param newMarket - the lending market state with the new configuration - to be build we new config options from the previous state
+   * @returns - an array of instructions
+   */
+  updateLendingMarketOwnerIxs(marketWithAddress: MarketWithAddress): TransactionInstruction {
+    const accounts: UpdateLendingMarketOwnerAccounts = {
+      lendingMarketOwnerCached: marketWithAddress.state.lendingMarketOwnerCached,
+      lendingMarket: marketWithAddress.address,
+    };
+
+    return updateLendingMarketOwner(accounts, this._kaminoLendProgramId);
+  }
 } // KaminoManager
+
+function parseForChangesMarketConfigAndGetIxs(
+  marketWithAddress: MarketWithAddress,
+  newMarket: LendingMarket,
+  programId: PublicKey
+): TransactionInstruction[] {
+  const market = marketWithAddress.state;
+  const updateLendingMarketIxnsArgs: { mode: number; value: Buffer }[] = [];
+  for (const key in market.toJSON()) {
+    if (key === 'lendingMarketOwner') {
+      if (!market.lendingMarketOwner.equals(newMarket.lendingMarketOwner)) {
+        updateLendingMarketIxnsArgs.push({
+          mode: UpdateLendingMarketMode.UpdateOwner.discriminator,
+          value: updateMarketConfigEncodedValue(
+            UpdateLendingMarketMode.UpdateOwner.discriminator,
+            newMarket.lendingMarketOwner
+          ),
+        });
+      }
+    } else if (key === 'lendingMarketOwnerCached') {
+      if (!market.lendingMarketOwnerCached.equals(newMarket.lendingMarketOwnerCached)) {
+        updateLendingMarketIxnsArgs.push({
+          mode: UpdateLendingMarketMode.UpdateOwner.discriminator,
+          value: updateMarketConfigEncodedValue(
+            UpdateLendingMarketMode.UpdateOwner.discriminator,
+            newMarket.lendingMarketOwnerCached
+          ),
+        });
+      }
+    } else if (key === 'referralFeeBps') {
+      if (market.referralFeeBps !== newMarket.referralFeeBps) {
+        updateLendingMarketIxnsArgs.push({
+          mode: UpdateLendingMarketMode.UpdateReferralFeeBps.discriminator,
+          value: updateMarketConfigEncodedValue(
+            UpdateLendingMarketMode.UpdateReferralFeeBps.discriminator,
+            newMarket.referralFeeBps
+          ),
+        });
+      }
+    } else if (key === 'emergencyMode') {
+      if (market.emergencyMode !== newMarket.emergencyMode) {
+        updateLendingMarketIxnsArgs.push({
+          mode: UpdateLendingMarketMode.UpdateEmergencyMode.discriminator,
+          value: updateMarketConfigEncodedValue(
+            UpdateLendingMarketMode.UpdateEmergencyMode.discriminator,
+            newMarket.emergencyMode
+          ),
+        });
+      }
+    } else if (key === 'autodeleverageEnabled') {
+      if (market.autodeleverageEnabled !== newMarket.autodeleverageEnabled) {
+        updateLendingMarketIxnsArgs.push({
+          mode: UpdateLendingMarketMode.UpdateAutodeleverageEnabled.discriminator,
+          value: updateMarketConfigEncodedValue(
+            UpdateLendingMarketMode.UpdateAutodeleverageEnabled.discriminator,
+            newMarket.autodeleverageEnabled
+          ),
+        });
+      }
+    } else if (key === 'borrowDisabled') {
+      if (market.borrowDisabled !== newMarket.borrowDisabled) {
+        updateLendingMarketIxnsArgs.push({
+          mode: UpdateLendingMarketMode.UpdateBorrowingDisabled.discriminator,
+          value: updateMarketConfigEncodedValue(
+            UpdateLendingMarketMode.UpdateBorrowingDisabled.discriminator,
+            newMarket.borrowDisabled
+          ),
+        });
+      }
+    } else if (key === 'priceRefreshTriggerToMaxAgePct') {
+      if (market.priceRefreshTriggerToMaxAgePct !== newMarket.priceRefreshTriggerToMaxAgePct) {
+        updateLendingMarketIxnsArgs.push({
+          mode: UpdateLendingMarketMode.UpdatePriceRefreshTriggerToMaxAgePct.discriminator,
+          value: updateMarketConfigEncodedValue(
+            UpdateLendingMarketMode.UpdatePriceRefreshTriggerToMaxAgePct.discriminator,
+            newMarket.priceRefreshTriggerToMaxAgePct
+          ),
+        });
+      }
+    } else if (key === 'liquidationMaxDebtCloseFactorPct') {
+      if (market.liquidationMaxDebtCloseFactorPct !== newMarket.liquidationMaxDebtCloseFactorPct) {
+        updateLendingMarketIxnsArgs.push({
+          mode: UpdateLendingMarketMode.UpdateLiquidationCloseFactor.discriminator,
+          value: updateMarketConfigEncodedValue(
+            UpdateLendingMarketMode.UpdateLiquidationCloseFactor.discriminator,
+            newMarket.liquidationMaxDebtCloseFactorPct
+          ),
+        });
+      }
+    } else if (key === 'insolvencyRiskUnhealthyLtvPct') {
+      if (market.insolvencyRiskUnhealthyLtvPct !== newMarket.insolvencyRiskUnhealthyLtvPct) {
+        updateLendingMarketIxnsArgs.push({
+          mode: UpdateLendingMarketMode.UpdateInsolvencyRiskLtv.discriminator,
+          value: updateMarketConfigEncodedValue(
+            UpdateLendingMarketMode.UpdateInsolvencyRiskLtv.discriminator,
+            newMarket.insolvencyRiskUnhealthyLtvPct
+          ),
+        });
+      }
+    } else if (key === 'minFullLiquidationValueThreshold') {
+      if (!market.minFullLiquidationValueThreshold.eq(newMarket.minFullLiquidationValueThreshold)) {
+        updateLendingMarketIxnsArgs.push({
+          mode: UpdateLendingMarketMode.UpdateMinFullLiquidationThreshold.discriminator,
+          value: updateMarketConfigEncodedValue(
+            UpdateLendingMarketMode.UpdateMinFullLiquidationThreshold.discriminator,
+            newMarket.minFullLiquidationValueThreshold.toNumber()
+          ),
+        });
+      }
+    } else if (key === 'maxLiquidatableDebtMarketValueAtOnce') {
+      if (!market.maxLiquidatableDebtMarketValueAtOnce.eq(newMarket.maxLiquidatableDebtMarketValueAtOnce)) {
+        updateLendingMarketIxnsArgs.push({
+          mode: UpdateLendingMarketMode.UpdateLiquidationMaxValue.discriminator,
+          value: updateMarketConfigEncodedValue(
+            UpdateLendingMarketMode.UpdateLiquidationMaxValue.discriminator,
+            newMarket.maxLiquidatableDebtMarketValueAtOnce.toNumber()
+          ),
+        });
+      }
+    } else if (key === 'globalUnhealthyBorrowValue') {
+      if (!market.globalUnhealthyBorrowValue.eq(newMarket.globalUnhealthyBorrowValue)) {
+        updateLendingMarketIxnsArgs.push({
+          mode: UpdateLendingMarketMode.UpdateGlobalUnhealthyBorrow.discriminator,
+          value: updateMarketConfigEncodedValue(
+            UpdateLendingMarketMode.UpdateGlobalUnhealthyBorrow.discriminator,
+            newMarket.globalUnhealthyBorrowValue.toNumber()
+          ),
+        });
+      }
+    } else if (key === 'globalAllowedBorrowValue') {
+      if (!market.globalAllowedBorrowValue.eq(newMarket.globalAllowedBorrowValue)) {
+        updateLendingMarketIxnsArgs.push({
+          mode: UpdateLendingMarketMode.UpdateGlobalAllowedBorrow.discriminator,
+          value: updateMarketConfigEncodedValue(
+            UpdateLendingMarketMode.UpdateGlobalAllowedBorrow.discriminator,
+            newMarket.globalAllowedBorrowValue.toNumber()
+          ),
+        });
+      }
+    } else if (key === 'riskCouncil') {
+      if (!market.riskCouncil.equals(newMarket.riskCouncil)) {
+        updateLendingMarketIxnsArgs.push({
+          mode: UpdateLendingMarketMode.UpdateRiskCouncil.discriminator,
+          value: updateMarketConfigEncodedValue(
+            UpdateLendingMarketMode.UpdateRiskCouncil.discriminator,
+            newMarket.riskCouncil
+          ),
+        });
+      }
+    } else if (key === 'multiplierPointsTagBoost') {
+      for (let i = 0; i < market.multiplierPointsTagBoost.length; i++) {
+        if (market.multiplierPointsTagBoost[i] !== newMarket.multiplierPointsTagBoost[i]) {
+          updateLendingMarketIxnsArgs.push({
+            mode: UpdateLendingMarketMode.UpdateMultiplierPoints.discriminator,
+            value: updateMarketConfigEncodedValue(
+              UpdateLendingMarketMode.UpdateMultiplierPoints.discriminator,
+              newMarket.multiplierPointsTagBoost
+            ),
+          });
+        }
+      }
+    } else if (key === 'minNetValueInObligationSf') {
+      if (!market.minNetValueInObligationSf.eq(newMarket.minNetValueInObligationSf)) {
+        updateLendingMarketIxnsArgs.push({
+          mode: UpdateLendingMarketMode.UpdateMinNetValueObligationPostAction.discriminator,
+          value: updateMarketConfigEncodedValue(
+            UpdateLendingMarketMode.UpdateMinNetValueObligationPostAction.discriminator,
+            newMarket.minNetValueInObligationSf.toString()
+          ),
+        });
+      }
+    } else if (key === 'minValueSkipLiquidationLtvBfChecks') {
+      if (!market.minValueSkipLiquidationLtvBfChecks.eq(newMarket.minValueSkipLiquidationLtvBfChecks)) {
+        updateLendingMarketIxnsArgs.push({
+          mode: UpdateLendingMarketMode.UpdateMinValueSkipPriorityLiqCheck.discriminator,
+          value: updateMarketConfigEncodedValue(
+            UpdateLendingMarketMode.UpdateMinValueSkipPriorityLiqCheck.discriminator,
+            newMarket.minValueSkipLiquidationLtvBfChecks.toNumber()
+          ),
+        });
+      }
+    } else if (key === 'elevationGroups') {
+      let elevationGroupsDiffs = 0;
+      for (let i = 0; i < market.elevationGroups.length; i++) {
+        if (
+          market.elevationGroups[i].id !== newMarket.elevationGroups[i].id ||
+          market.elevationGroups[i].maxLiquidationBonusBps !== newMarket.elevationGroups[i].maxLiquidationBonusBps ||
+          market.elevationGroups[i].ltvPct !== newMarket.elevationGroups[i].ltvPct ||
+          market.elevationGroups[i].liquidationThresholdPct !== newMarket.elevationGroups[i].liquidationThresholdPct ||
+          market.elevationGroups[i].allowNewLoans !== newMarket.elevationGroups[i].allowNewLoans ||
+          market.elevationGroups[i].maxReservesAsCollateral !== newMarket.elevationGroups[i].maxReservesAsCollateral ||
+          !market.elevationGroups[i].debtReserve.equals(newMarket.elevationGroups[i].debtReserve)
+        ) {
+          updateLendingMarketIxnsArgs.push({
+            mode: UpdateLendingMarketMode.UpdateElevationGroup.discriminator,
+            value: updateMarketConfigEncodedValue(
+              UpdateLendingMarketMode.UpdateElevationGroup.discriminator,
+              newMarket.elevationGroups[i]
+            ),
+          });
+          elevationGroupsDiffs++;
+        }
+      }
+      if (elevationGroupsDiffs > 1) {
+        throw new Error('Can only update 1 elevation group at a time');
+      }
+    }
+  } // for loop
+
+  const ixns: TransactionInstruction[] = [];
+
+  updateLendingMarketIxnsArgs.forEach((updateLendingMarketConfigArgs) => {
+    ixns.push(
+      updateMarketConfigIx(
+        marketWithAddress,
+        updateLendingMarketConfigArgs.mode,
+        updateLendingMarketConfigArgs.value,
+        programId
+      )
+    );
+  });
+
+  return ixns;
+}
+
+function updateMarketConfigEncodedValue(
+  discriminator: number,
+  value: number | number[] | PublicKey | ElevationGroup | string
+): Buffer {
+  let buffer: Buffer = Buffer.alloc(72);
+  let valueArray: number[] = [];
+  let pkBuffer: Buffer;
+  let valueBigInt: bigint;
+
+  switch (discriminator) {
+    case UpdateLendingMarketMode.UpdateEmergencyMode.discriminator:
+    case UpdateLendingMarketMode.UpdateLiquidationCloseFactor.discriminator:
+    case UpdateLendingMarketMode.UpdateInsolvencyRiskLtv.discriminator:
+    case UpdateLendingMarketMode.UpdatePriceRefreshTriggerToMaxAgePct.discriminator:
+    case UpdateLendingMarketMode.UpdateAutodeleverageEnabled.discriminator:
+    case UpdateLendingMarketMode.UpdateBorrowingDisabled.discriminator:
+      buffer.writeUIntLE(value as number, 0, 1);
+      break;
+    case UpdateLendingMarketMode.UpdateReferralFeeBps.discriminator:
+      buffer.writeUInt16LE(value as number, 0);
+      break;
+    case UpdateLendingMarketMode.UpdateLiquidationMaxValue.discriminator:
+    case UpdateLendingMarketMode.UpdateGlobalAllowedBorrow.discriminator:
+    case UpdateLendingMarketMode.UpdateGlobalUnhealthyBorrow.discriminator:
+    case UpdateLendingMarketMode.UpdateMinFullLiquidationThreshold.discriminator:
+    case UpdateLendingMarketMode.UpdateMinValueSkipPriorityLiqCheck.discriminator:
+      value = value as number;
+      buffer.writeBigUint64LE(BigInt(value), 0);
+      break;
+    case UpdateLendingMarketMode.UpdateMultiplierPoints.discriminator:
+      valueArray = value as number[];
+      for (let i = 0; i < valueArray.length; i++) {
+        buffer.writeUIntLE(valueArray[i], i, 1);
+      }
+      break;
+    case UpdateLendingMarketMode.UpdateOwner.discriminator:
+    case UpdateLendingMarketMode.UpdateRiskCouncil.discriminator:
+      pkBuffer = (value as PublicKey).toBuffer();
+      pkBuffer.copy(buffer, 0);
+      break;
+    case UpdateLendingMarketMode.UpdateElevationGroup.discriminator:
+      buffer = serializeElevationGroup(value as ElevationGroup);
+      break;
+    case UpdateLendingMarketMode.UpdateMinNetValueObligationPostAction.discriminator:
+      valueBigInt = BigInt(value as string);
+      for (let i = 0; i < 16; i++) {
+        buffer[15 - i] = Number((valueBigInt >> BigInt(i * 8)) & BigInt(0xff));
+      }
+      break;
+    default:
+      break;
+  }
+
+  return buffer;
+}
+
+function updateMarketConfigIx(
+  marketWithAddress: MarketWithAddress,
+  modeDiscriminator: number,
+  value: Buffer,
+  programId: PublicKey
+): TransactionInstruction {
+  value;
+  const accounts: UpdateLendingMarketAccounts = {
+    lendingMarketOwner: marketWithAddress.state.lendingMarketOwner,
+    lendingMarket: marketWithAddress.address,
+  };
+
+  const args: UpdateLendingMarketArgs = {
+    mode: new anchor.BN(modeDiscriminator),
+    value: [...value],
+  };
+
+  const ix = updateLendingMarket(args, accounts, programId);
+
+  return ix;
+}
+
+function serializeElevationGroup(elevationGroup: ElevationGroup): Buffer {
+  const buffer = Buffer.alloc(72);
+  buffer.writeUInt16LE(elevationGroup.maxLiquidationBonusBps, 0);
+  buffer.writeUIntLE(elevationGroup.id, 2, 1);
+  buffer.writeUIntLE(elevationGroup.ltvPct, 3, 1);
+  buffer.writeUIntLE(elevationGroup.liquidationThresholdPct, 4, 1);
+  buffer.writeUIntLE(elevationGroup.allowNewLoans, 5, 1);
+  buffer.writeUIntLE(elevationGroup.maxReservesAsCollateral, 6, 1);
+  buffer.writeUIntLE(elevationGroup.padding0, 7, 1);
+  const debtReserveBuffer = elevationGroup.debtReserve.toBuffer();
+  debtReserveBuffer.copy(buffer, 8);
+  return buffer;
+}

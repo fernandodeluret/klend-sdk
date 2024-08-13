@@ -24,7 +24,9 @@ function getLoanValue(loan: KaminoObligation) {
   });
   const { netValue, borrowValue, depositValue } = getLoanValue(loan!);
   console.log(
-    `found ${ObligationTypeTag[loan!.obligationTag]} loan with $${depositValue.toNumber()} deposited, $${borrowValue.toNumber()} borrowed, $${netValue} net value`
+    `found ${
+      ObligationTypeTag[loan!.obligationTag]
+    } loan with $${depositValue.toNumber()} deposited, $${borrowValue.toNumber()} borrowed, $${netValue} net value`
   );
 })().catch(async (e) => {
   console.error(e);
