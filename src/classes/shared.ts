@@ -1,5 +1,6 @@
 import { PublicKey } from '@solana/web3.js';
 import Decimal from 'decimal.js';
+import { FarmState, RewardInfo } from '@hubbleprotocol/farms-sdk';
 
 export type ConfigType = Array<MarketConfigType>;
 
@@ -42,4 +43,15 @@ export type ReserveDataType = {
   accumulatedProtocolFees: Decimal;
   mintTotalSupply: Decimal;
   borrowFactor: number;
+};
+
+export type ReserveRewardYield = {
+  apy: Decimal;
+  apr: Decimal;
+  rewardInfo: RewardInfo;
+};
+
+export type ReserveFarmInfo = {
+  fetched: boolean;
+  farmStates: FarmState[];
 };

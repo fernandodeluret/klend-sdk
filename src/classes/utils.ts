@@ -182,3 +182,11 @@ export function calculateAPYFromAPR(apr: number) {
   const apy = new Decimal(1).plus(new Decimal(apr).dividedBy(SLOTS_PER_YEAR)).toNumber() ** SLOTS_PER_YEAR - 1;
   return apy;
 }
+
+export function calculateAPRFromAPY(apy: Decimal.Value) {
+  return new Decimal(apy)
+    .plus(1)
+    .pow(1 / SLOTS_PER_YEAR)
+    .minus(1)
+    .times(SLOTS_PER_YEAR);
+}

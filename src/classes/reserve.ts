@@ -20,10 +20,16 @@ import {
   TokenOracleData,
   U64_MAX,
 } from '../utils';
-import { ReserveDataType, ReserveStatus } from './shared';
+import { ReserveDataType, ReserveFarmInfo, ReserveRewardYield, ReserveStatus } from './shared';
 import { Reserve, ReserveFields } from '../idl_codegen/accounts';
 import { BorrowRateCurve, CurvePointFields, ReserveConfig, UpdateConfigMode } from '../idl_codegen/types';
-import { calculateAPYFromAPR, getBorrowRate, parseTokenSymbol } from './utils';
+import {
+  calculateAPRFromAPY,
+  calculateAPYFromAPR,
+  getBorrowRate,
+  lamportsToNumberDecimal,
+  parseTokenSymbol,
+} from './utils';
 import { Fraction } from './fraction';
 import BN from 'bn.js';
 import { ActionType } from './action';
@@ -38,6 +44,8 @@ import {
 import * as anchor from '@coral-xyz/anchor';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { UpdateBorrowRateCurve } from '../idl_codegen/types/UpdateConfigMode';
+import { KaminoPrices } from '@kamino-finance/kliquidity-sdk';
+import { FarmState, RewardInfo } from '@hubbleprotocol/farms-sdk';
 
 export const DEFAULT_RECENT_SLOT_DURATION_MS = 450;
 
@@ -48,6 +56,7 @@ export class KaminoReserve {
 
   tokenOraclePrice: TokenOracleData;
   stats: ReserveDataType;
+  private farmData: ReserveFarmInfo = { fetched: false, farmStates: [] };
 
   private buffer: AccountInfo<Buffer> | null;
   private connection: Connection;
@@ -677,6 +686,81 @@ export class KaminoReserve {
     }
 
     return calculateAPYFromAPR(this.calculateBorrowAPR(currentSlot, 0));
+  }
+
+  async loadFarmStates() {
+    if (!this.farmData.fetched) {
+      const farmStates = await FarmState.fetchMultiple(this.connection, [
+        this.state.farmDebt,
+        this.state.farmCollateral,
+      ]);
+      this.farmData.farmStates.push(...farmStates.filter((x) => x !== null));
+      this.farmData.fetched = true;
+    }
+  }
+
+  async getRewardYields(prices: KaminoPrices): Promise<ReserveRewardYield[]> {
+    const { stats } = this;
+    if (!stats) {
+      throw Error('KaminoMarket must call loadReserves.');
+    }
+
+    const isDebtReward = this.state.farmDebt.equals(this.address);
+    await this.loadFarmStates();
+    const yields: ReserveRewardYield[] = [];
+    for (const farmState of this.farmData.farmStates) {
+      for (const rewardInfo of farmState.rewardInfos.filter((x) => !x.token.mint.equals(PublicKey.default))) {
+        const { apy, apr } = this.calculateRewardYield(prices, rewardInfo, isDebtReward);
+        yields.push({ apy, apr, rewardInfo });
+      }
+    }
+    return yields;
+  }
+
+  private calculateRewardYield(prices: KaminoPrices, rewardInfo: RewardInfo, isDebtReward: boolean) {
+    const { decimals } = this.stats;
+    const totalBorrows = this.getBorrowedAmount();
+    const totalSupply = this.getTotalSupply();
+    const mintAddress = this.getLiquidityMint();
+    const totalAmount = isDebtReward
+      ? lamportsToNumberDecimal(totalBorrows, decimals)
+      : lamportsToNumberDecimal(totalSupply, decimals);
+    const totalValue = totalAmount.mul(prices.spot[mintAddress.toString()].price);
+    const rewardPerTimeUnitSecond = this.getRewardPerTimeUnitSecond(rewardInfo);
+    const rewardsInYear = rewardPerTimeUnitSecond.mul(60 * 60 * 24 * 365);
+    const rewardsInYearValue = rewardsInYear.mul(prices.spot[rewardInfo.token.mint.toString()].price);
+    const apy = rewardsInYearValue.div(totalValue);
+    return { apy, apr: calculateAPRFromAPY(apy) };
+  }
+
+  private getRewardPerTimeUnitSecond(reward: RewardInfo) {
+    const now = new Decimal(new Date().getTime()).div(1000);
+    let rewardPerTimeUnitSecond = new Decimal(0);
+    for (let i = 0; i < reward.rewardScheduleCurve.points.length - 1; i++) {
+      const { tsStart: tsStartThisPoint, rewardPerTimeUnit } = reward.rewardScheduleCurve.points[i];
+      const { tsStart: tsStartNextPoint } = reward.rewardScheduleCurve.points[i + 1];
+
+      const thisPeriodStart = new Decimal(tsStartThisPoint.toString());
+      const thisPeriodEnd = new Decimal(tsStartNextPoint.toString());
+      const rps = new Decimal(rewardPerTimeUnit.toString());
+      if (thisPeriodStart <= now && thisPeriodEnd >= now) {
+        rewardPerTimeUnitSecond = rps;
+        break;
+      } else if (thisPeriodStart > now && thisPeriodEnd > now) {
+        rewardPerTimeUnitSecond = rps;
+        break;
+      }
+    }
+
+    const rewardTokenDecimals = reward.token.decimals.toNumber();
+    const rewardAmountPerUnitDecimals = new Decimal(10).pow(reward.rewardsPerSecondDecimals.toString());
+    const rewardAmountPerUnitLamports = new Decimal(10).pow(rewardTokenDecimals.toString());
+
+    const rpsAdjusted = new Decimal(rewardPerTimeUnitSecond.toString())
+      .div(rewardAmountPerUnitDecimals)
+      .div(rewardAmountPerUnitLamports);
+
+    return rewardPerTimeUnitSecond ? rpsAdjusted : new Decimal(0);
   }
 
   private formatReserveData(parsedData: ReserveFields): ReserveDataType {
