@@ -14,7 +14,13 @@ import { ActionType } from './action';
 export type Position = {
   reserveAddress: PublicKey;
   mintAddress: PublicKey;
+  /**
+   * Amount of tokens in lamports, including decimal places for interest accrued (no borrow factor weighting)
+   */
   amount: Decimal;
+  /**
+   * Market value of the position in USD (no borrow factor weighting)
+   */
   marketValueRefreshed: Decimal;
 };
 
@@ -284,6 +290,26 @@ export class KaminoObligation {
   }
 
   /**
+   * Get the loan to value and liquidation loan to value for a collateral token reserve as ratios, accounting for the obligation elevation group if it is active
+   * @param market
+   * @param reserve
+   */
+  public getLtvForReserve(
+    market: KaminoMarket,
+    reserve: KaminoReserve
+  ): { maxLtv: Decimal; liquidationLtv: Decimal } {
+    return KaminoObligation.getLtvForReserve(market, reserve, this.state.elevationGroup);
+  }
+
+  /**
+   * Get the borrow factor for a borrow reserve, accounting for the obligation elevation group if it is active
+   * @param reserve
+   */
+  public getBorrowFactorForReserve(reserve: KaminoReserve): Decimal {
+    return KaminoObligation.getBorrowFactorForReserve(reserve, this.state.elevationGroup);
+  }
+
+  /**
    * @returns the potential elevation groups the obligation qualifies for
    */
   getElevationGroups(kaminoMarket: KaminoMarket): Array<number> {
@@ -368,8 +394,7 @@ export class KaminoObligation {
       );
     }
 
-    const borrowFactor =
-      this.state.elevationGroup !== 0 ? new Decimal(1) : new Decimal(reserve.stats.borrowFactor).div(100);
+    const borrowFactor = this.getBorrowFactorForReserve(reserve);
 
     const borrowValueUSD = borrowAmount.mul(reserve.getOracleMarketPrice()).dividedBy(reserve.getMintFactor());
 
@@ -430,19 +455,12 @@ export class KaminoObligation {
       };
     }
 
-    let loanToValue = reserve.stats.loanToValuePct;
-    let liqThreshold = reserve.stats.liquidationThreshold;
-
-    if (this.state.elevationGroup !== 0) {
-      loanToValue = market.getElevationGroup(this.state.elevationGroup).ltvPct / 100;
-      liqThreshold = market.getElevationGroup(this.state.elevationGroup).liquidationThresholdPct / 100;
-    }
-
     if (!reserve.state.config.elevationGroups.includes(this.state.elevationGroup)) {
       throw new Error(
         `User would have to downgrade the elevation group in order to be able to deposit in this reserve`
       );
     }
+    const { maxLtv, liquidationLtv } = this.getLtvForReserve(market, reserve);
 
     const supplyAmount = amount; //.mul(reserve.getCollateralExchangeRate()).floor();
     const supplyAmountMultiplierUSD = supplyAmount
@@ -450,9 +468,9 @@ export class KaminoObligation {
       .dividedBy('1'.concat(Array(reserve.stats.decimals + 1).join('0')));
 
     newStats.userTotalDeposit = positiveOrZero(newStats.userTotalDeposit.plus(supplyAmountMultiplierUSD));
-    newStats.borrowLimit = positiveOrZero(newStats.borrowLimit.plus(supplyAmountMultiplierUSD.mul(loanToValue)));
+    newStats.borrowLimit = positiveOrZero(newStats.borrowLimit.plus(supplyAmountMultiplierUSD.mul(maxLtv)));
     newStats.borrowLiquidationLimit = positiveOrZero(
-      newStats.borrowLiquidationLimit.plus(supplyAmountMultiplierUSD.mul(liqThreshold))
+      newStats.borrowLiquidationLimit.plus(supplyAmountMultiplierUSD.mul(liquidationLtv))
     );
     newStats.liquidationLtv = valueOrZero(newStats.borrowLiquidationLimit.div(newStats.userTotalDeposit));
 
@@ -755,15 +773,13 @@ export class KaminoObligation {
           `Obligation contains a deposit belonging to reserve: ${deposit.depositReserve} but the reserve was not found on the market. Deposit amount: ${deposit.depositedAmount}`
         );
       }
-      let loanToValue = reserve.stats.loanToValuePct;
-      let liqThreshold = reserve.stats.liquidationThreshold;
+      const { maxLtv, liquidationLtv } = KaminoObligation.getLtvForReserve(
+        market,
+        reserve,
+        obligation.elevationGroup
+      );
 
-      if (obligation.elevationGroup !== 0) {
-        loanToValue = market.state.elevationGroups[obligation.elevationGroup - 1].ltvPct / 100;
-        liqThreshold = market.state.elevationGroups[obligation.elevationGroup - 1].liquidationThresholdPct / 100;
-      }
-
-      let exchangeRate;
+      let exchangeRate: Decimal;
       if (collateralExchangeRates !== null) {
         exchangeRate = collateralExchangeRates.get(reserve.address)!;
       } else {
@@ -775,12 +791,12 @@ export class KaminoObligation {
 
       userTotalDeposit = userTotalDeposit.add(depositValueUsd);
 
-      if (loanToValue !== 0) {
+      if (!maxLtv.eq('0')) {
         userTotalCollateralDeposit = userTotalCollateralDeposit.add(depositValueUsd);
       }
 
-      borrowLimit = borrowLimit.add(depositValueUsd.mul(loanToValue));
-      borrowLiquidationLimit = borrowLiquidationLimit.add(depositValueUsd.mul(liqThreshold));
+      borrowLimit = borrowLimit.add(depositValueUsd.mul(maxLtv));
+      borrowLiquidationLimit = borrowLiquidationLimit.add(depositValueUsd.mul(liquidationLtv));
 
       const position: Position = {
         reserveAddress: reserve.address,
@@ -915,8 +931,7 @@ export class KaminoObligation {
     const elevationGroupActivated =
       reserve.state.config.elevationGroups.includes(elevationGroup) && elevationGroup !== 0;
 
-    const reserveBorrowFactor = reserve.getBorrowFactor();
-    const borrowFactor = elevationGroupActivated ? new Decimal(1) : reserveBorrowFactor;
+    const borrowFactor = this.getBorrowFactorForReserve(reserve);
 
     const maxObligationBorrowPower = this.refreshedStats.borrowLimit // adjusted available amount
       .minus(this.refreshedStats.userTotalBorrowBorrowFactorAdjusted)
@@ -996,13 +1011,13 @@ export class KaminoObligation {
   }
 
   getMaxWithdrawAmount(market: KaminoMarket, tokenMint: PublicKey, slot: number): Decimal {
-    const reserve = market.getReserveByMint(tokenMint);
+    const depositReserve = market.getReserveByMint(tokenMint);
 
-    if (!reserve) {
+    if (!depositReserve) {
       throw new Error('Reserve not found');
     }
 
-    const userDepositPosition = this.getDepositByReserve(reserve.address);
+    const userDepositPosition = this.getDepositByReserve(depositReserve.address);
 
     if (!userDepositPosition) {
       throw new Error('Deposit reserve not found');
@@ -1014,19 +1029,14 @@ export class KaminoObligation {
       return new Decimal(userDepositPositionAmount);
     }
 
-    const elevationGroupActivated =
-      reserve.state.config.elevationGroups.includes(this.state.elevationGroup) && this.state.elevationGroup !== 0;
-
-    const reserveMaxLtv = elevationGroupActivated
-      ? market.getElevationGroup(this.state.elevationGroup).ltvPct / 100
-      : reserve.stats.loanToValuePct;
+    const { maxLtv: reserveMaxLtv } = this.getLtvForReserve(market, depositReserve);
     // bf adjusted debt value > allowed_borrow_value
     if (this.refreshedStats.userTotalBorrowBorrowFactorAdjusted >= this.refreshedStats.borrowLimit) {
       return new Decimal(0);
     }
 
-    let maxWithdrawValue;
-    if (reserveMaxLtv === 0) {
+    let maxWithdrawValue: Decimal;
+    if (reserveMaxLtv.eq(0)) {
       maxWithdrawValue = userDepositPositionAmount;
     } else {
       // borrowLimit / userTotalDeposit = maxLtv
@@ -1037,12 +1047,14 @@ export class KaminoObligation {
         .mul(0.999); // remove 0.1% to prevent going over max ltv
     }
 
-    const maxWithdrawAmount = maxWithdrawValue.div(reserve.getOracleMarketPrice()).mul(reserve.getMintFactor());
-    const reserveAvailableLiquidity = reserve.getLiquidityAvailableAmount();
+    const maxWithdrawAmount = maxWithdrawValue
+      .div(depositReserve.getOracleMarketPrice())
+      .mul(depositReserve.getMintFactor());
+    const reserveAvailableLiquidity = depositReserve.getLiquidityAvailableAmount();
 
-    const withdrawalCapRemained = reserve
+    const withdrawalCapRemained = depositReserve
       .getDepositWithdrawalCapCapacity()
-      .sub(reserve.getDepositWithdrawalCapCurrent(slot));
+      .sub(depositReserve.getDepositWithdrawalCapCurrent(slot));
     return Decimal.max(
       0,
       Decimal.min(userDepositPositionAmount, maxWithdrawAmount, reserveAvailableLiquidity, withdrawalCapRemained)
@@ -1174,10 +1186,45 @@ export class KaminoObligation {
     }
   }
 
-  static getBorrowFactorForReserve(reserve: KaminoReserve, elevationGroup: number): Decimal {
-    if (elevationGroup !== 0) {
-      return new Decimal(1);
+  /**
+   * Get the borrow factor for a borrow reserve, accounting for the obligation elevation group if it is active
+   * @param reserve
+   * @param elevationGroup
+   */
+  public static getBorrowFactorForReserve(reserve: KaminoReserve, elevationGroup: number): Decimal {
+    const elevationGroupActivated =
+      reserve.state.config.elevationGroups.includes(elevationGroup) && elevationGroup !== 0;
+    if (elevationGroupActivated) {
+      return new Decimal('1');
     }
-    return new Decimal(reserve.stats.borrowFactor).div(100);
+    return new Decimal(reserve.stats.borrowFactor).div('100');
+  }
+
+  /**
+   * Get the loan to value and liquidation loan to value for a collateral reserve as ratios, accounting for the obligation elevation group if it is active
+   * @param market
+   * @param reserve
+   * @param elevationGroup
+   */
+  public static getLtvForReserve(
+    market: KaminoMarket,
+    reserve: KaminoReserve,
+    elevationGroup: number
+  ): { maxLtv: Decimal; liquidationLtv: Decimal } {
+    const elevationGroupActivated =
+      elevationGroup !== 0 && reserve.state.config.elevationGroups.includes(elevationGroup);
+    if (elevationGroupActivated) {
+      const { ltvPct, liquidationThresholdPct } = market.getElevationGroup(elevationGroup);
+      return {
+        maxLtv: new Decimal(ltvPct).div('100'),
+        liquidationLtv: new Decimal(liquidationThresholdPct).div('100'),
+      };
+    } else {
+      const { loanToValue, liquidationThreshold } = reserve.stats;
+      return {
+        maxLtv: new Decimal(loanToValue),
+        liquidationLtv: new Decimal(liquidationThreshold),
+      };
+    }
   }
 }

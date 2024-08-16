@@ -783,7 +783,7 @@ export class KaminoReserve {
       status: reserveStatus,
       mintAddress: parsedData.liquidity.mintPubkey,
       borrowCurve: truncateBorrowCurve(parsedData.config.borrowRateCurve.points),
-      loanToValuePct: parsedData.config.loanToValuePct / 100,
+      loanToValue: parsedData.config.loanToValuePct / 100,
       maxLiquidationBonus: parsedData.config.maxLiquidationBonusBps / 10000,
       minLiquidationBonus: parsedData.config.minLiquidationBonusBps / 10000,
       liquidationThreshold: parsedData.config.liquidationThresholdPct / 100,

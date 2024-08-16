@@ -29,7 +29,7 @@ export type ReserveDataType = {
   status: ReserveStatus;
   mintAddress: PublicKey;
   borrowCurve: [number, number][];
-  loanToValuePct: number;
+  loanToValue: number;
   maxLiquidationBonus: number;
   minLiquidationBonus: number;
   liquidationThreshold: number;
