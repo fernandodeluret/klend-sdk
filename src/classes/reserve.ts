@@ -23,13 +23,7 @@ import {
 import { ReserveDataType, ReserveFarmInfo, ReserveRewardYield, ReserveStatus } from './shared';
 import { Reserve, ReserveFields } from '../idl_codegen/accounts';
 import { BorrowRateCurve, CurvePointFields, ReserveConfig, UpdateConfigMode } from '../idl_codegen/types';
-import {
-  calculateAPRFromAPY,
-  calculateAPYFromAPR,
-  getBorrowRate,
-  lamportsToNumberDecimal,
-  parseTokenSymbol,
-} from './utils';
+import { calculateAPYFromAPR, getBorrowRate, lamportsToNumberDecimal, parseTokenSymbol } from './utils';
 import { Fraction } from './fraction';
 import BN from 'bn.js';
 import { ActionType } from './action';
@@ -44,7 +38,7 @@ import {
 import * as anchor from '@coral-xyz/anchor';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { UpdateBorrowRateCurve } from '../idl_codegen/types/UpdateConfigMode';
-import { KaminoPrices } from '@kamino-finance/kliquidity-sdk';
+import { aprToApy, KaminoPrices } from '@kamino-finance/kliquidity-sdk';
 import { FarmState, RewardInfo } from '@hubbleprotocol/farms-sdk';
 
 export const DEFAULT_RECENT_SLOT_DURATION_MS = 450;
@@ -736,8 +730,8 @@ export class KaminoReserve {
     const rewardPerTimeUnitSecond = this.getRewardPerTimeUnitSecond(rewardInfo);
     const rewardsInYear = rewardPerTimeUnitSecond.mul(60 * 60 * 24 * 365);
     const rewardsInYearValue = rewardsInYear.mul(prices.spot[rewardInfo.token.mint.toString()].price);
-    const apy = rewardsInYearValue.div(totalValue);
-    return { apy, apr: calculateAPRFromAPY(apy) };
+    const apr = rewardsInYearValue.div(totalValue);
+    return { apy: aprToApy(apr, 365), apr };
   }
 
   private getRewardPerTimeUnitSecond(reward: RewardInfo) {
