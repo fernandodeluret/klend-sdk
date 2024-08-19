@@ -68,6 +68,7 @@ export const repayWithCollTestAdapter = async (
     swapper: getLocalSwapper(env, kaminoMarket, owner.publicKey),
     currentSlot,
     getTotalKlendAccountsOnly: false,
+    scopeRefresh: { includeScopeRefresh: false, scopeFeed: 'hubble' },
   });
 
   // Create lookup table

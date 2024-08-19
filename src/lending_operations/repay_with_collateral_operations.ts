@@ -3,6 +3,7 @@ import { KaminoAction, KaminoMarket, KaminoObligation, numberToLamportsDecimal }
 import { SwapInputs, SwapIxnsProvider, getFlashLoanInstructions, toJson } from '../leverage';
 import {
   PublicKeySet,
+  ScopeRefresh,
   U64_MAX,
   getAtasWithCreateIxnsIfMissing,
   getComputeBudgetAndPriorityFeeIxns,
@@ -123,6 +124,7 @@ export const getRepayWithCollIxns = async (props: {
   swapper: SwapIxnsProvider;
   currentSlot: number;
   getTotalKlendAccountsOnly: boolean;
+  scopeRefresh: ScopeRefresh;
 }): Promise<{
   ixns: TransactionInstruction[];
   lookupTablesAddresses: PublicKey[];
@@ -145,6 +147,7 @@ export const getRepayWithCollIxns = async (props: {
     swapper,
     currentSlot,
     getTotalKlendAccountsOnly,
+    scopeRefresh,
   } = props;
 
   const connection = kaminoMarket.getConnection();
@@ -223,7 +226,8 @@ export const getRepayWithCollIxns = async (props: {
     requestElevationGroup,
     undefined,
     isClosingPosition,
-    referrer
+    referrer,
+    scopeRefresh
   );
 
   const ixns = [
