@@ -23,7 +23,7 @@
     "build": "rm -rf dist/; tsc"
   },
   "dependencies": {
-    "@kamino-finance/klend-sdk": "^3.2.8",
+    "@kamino-finance/klend-sdk": "^3.2.12",
     "@solana/web3.js": "^1.95.2",
     "axios": "^1.7.3"
   },
