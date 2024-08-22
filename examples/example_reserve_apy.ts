@@ -4,7 +4,7 @@ import { FarmState, RewardInfo } from '@hubbleprotocol/farms-sdk';
 import { Scope } from '@hubbleprotocol/scope-sdk';
 import { PublicKey } from '@solana/web3.js';
 import { getConnection } from './utils/connection';
-import { MAIN_MARKET, PYUSD_RESERVE } from './utils/constants';
+import { MAIN_MARKET, PYUSD_MINT } from './utils/constants';
 import { getReserveRewardsApy, loadReserveData } from './utils/helpers';
 
 /**
@@ -20,11 +20,11 @@ export async function getReserveApy(args: ReserveArgs) {
 
 (async () => {
   const connection = getConnection();
-  console.log(`fetching data for market ${MAIN_MARKET.toString()} reserve ${PYUSD_RESERVE.toString()}`);
+  console.log(`fetching data for market ${MAIN_MARKET.toString()} reserve for ${PYUSD_MINT.toString()}`);
   const { borrowApy, rewardApys, supplyApy } = await getReserveApy({
     connection,
     marketPubkey: MAIN_MARKET,
-    reservePubkey: PYUSD_RESERVE,
+    mintPubkey: PYUSD_MINT,
   });
   console.log('borrow APY:', borrowApy);
   console.log('supply APY', supplyApy);

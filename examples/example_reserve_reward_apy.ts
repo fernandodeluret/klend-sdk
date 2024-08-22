@@ -1,14 +1,14 @@
 import { loadReserveData } from './utils/helpers';
 import { getConnection } from './utils/connection';
-import { MAIN_MARKET, PYUSD_RESERVE } from './utils/constants';
+import { MAIN_MARKET, PYUSD_MINT } from './utils/constants';
 
 (async () => {
   const connection = getConnection();
-  console.log(`fetching data for market ${MAIN_MARKET.toString()} reserve ${PYUSD_RESERVE.toString()}`);
+  console.log(`fetching data for market ${MAIN_MARKET.toString()} reserve for ${PYUSD_MINT.toString()}`);
   const { market, reserve } = await loadReserveData({
     connection,
     marketPubkey: MAIN_MARKET,
-    reservePubkey: PYUSD_RESERVE,
+    mintPubkey: PYUSD_MINT,
   });
   const prices = await market.getAllScopePrices();
   const rewardApys = await reserve.getRewardYields(prices);

@@ -33,11 +33,11 @@ export async function getLoan(args: LoanArgs) {
   return market.getObligationByAddress(args.obligationPubkey);
 }
 
-export async function loadReserveData({ connection, marketPubkey, reservePubkey }: ReserveArgs) {
+export async function loadReserveData({ connection, marketPubkey, mintPubkey }: ReserveArgs) {
   const market = await getMarket({ connection, marketPubkey });
-  const reserve = market.getReserveByAddress(reservePubkey);
+  const reserve = market.getReserveByMint(mintPubkey);
   if (!reserve) {
-    throw Error(`Could not load reserve ${reservePubkey.toString()}`);
+    throw Error(`Could not load reserve for ${mintPubkey.toString()}`);
   }
   const currentSlot = await connection.getSlot();
 
@@ -54,11 +54,14 @@ export async function getReserveRewardsApy(args: ReserveArgs) {
   const oraclePrices = await new Scope('mainnet-beta', args.connection).getOraclePrices();
   const prices = await market.getAllScopePrices(oraclePrices);
 
-  const isDebtReward = reserve.state.farmDebt.equals(args.reservePubkey);
   const farmStates = await FarmState.fetchMultiple(args.connection, [
     reserve.state.farmDebt,
     reserve.state.farmCollateral,
   ]);
+
+  // We are not calculating APY for debt rewards
+  const isDebtReward = false;
+
   for (const farmState of farmStates.filter((x) => x !== null)) {
     for (const rewardInfo of farmState!.rewardInfos.filter((x) => !x.token.mint.equals(PublicKey.default))) {
       const { apy } = calculateRewardApy(prices, reserve, rewardInfo, isDebtReward);

@@ -10,9 +10,9 @@ export interface ReserveArgs {
    */
   marketPubkey: PublicKey;
   /**
-   * Public Key of the Kamino Reserve (e.g. SOL reserve pubkey: d4A2prbA2whesmvHaL88BH6Ewn5N4bTSU2Ze8P6Bc4Q)
+   * Public Key of the reserve's token mint (e.g. For SOL reserve, SOL mint pubkey: So11111111111111111111111111111111111111112)
    */
-  reservePubkey: PublicKey;
+  mintPubkey: PublicKey;
 }
 
 export interface MarketArgs {
