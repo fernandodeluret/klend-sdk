@@ -684,18 +684,20 @@ export class KaminoReserve {
 
   async loadFarmStates() {
     if (!this.farmData.fetched) {
+      const farmStates: FarmState[] = [];
       if (!this.state.farmDebt.equals(PublicKey.default)) {
         const farmState = await FarmState.fetch(this.connection, this.state.farmDebt);
         if (farmState !== null) {
-          this.farmData.farmStates.push(farmState);
+          farmStates.push(farmState);
         }
       }
       if (!this.state.farmCollateral.equals(PublicKey.default)) {
         const farmState = await FarmState.fetch(this.connection, this.state.farmCollateral);
         if (farmState !== null) {
-          this.farmData.farmStates.push(farmState);
+          farmStates.push(farmState);
         }
       }
+      this.farmData.farmStates = farmStates;
       this.farmData.fetched = true;
     }
   }
