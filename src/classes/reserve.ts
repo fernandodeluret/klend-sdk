@@ -728,9 +728,10 @@ export class KaminoReserve {
   private calculateRewardYield(prices: KaminoPrices, rewardInfo: RewardInfo, isDebtReward: boolean) {
     const mintAddress = this.getLiquidityMint();
     const rewardPerTimeUnitSecond = this.getRewardPerTimeUnitSecond(rewardInfo);
-    const price = prices.spot[mintAddress.toString()];
+    const reserveToken = prices.spot[mintAddress.toString()];
+    const rewardToken = prices.spot[rewardInfo.token.mint.toString()];
 
-    if (rewardPerTimeUnitSecond.isZero() || price === undefined) {
+    if (rewardPerTimeUnitSecond.isZero() || reserveToken === undefined || rewardToken === undefined) {
       return { apy: new Decimal(0), apr: new Decimal(0) };
     }
     const { decimals } = this.stats;
@@ -740,9 +741,9 @@ export class KaminoReserve {
     const totalAmount = isDebtReward
       ? lamportsToNumberDecimal(totalBorrows, decimals)
       : lamportsToNumberDecimal(totalSupply, decimals);
-    const totalValue = totalAmount.mul(price.price);
+    const totalValue = totalAmount.mul(reserveToken.price);
     const rewardsInYear = rewardPerTimeUnitSecond.mul(60 * 60 * 24 * 365);
-    const rewardsInYearValue = rewardsInYear.mul(price.price);
+    const rewardsInYearValue = rewardsInYear.mul(rewardToken.price);
     const apr = rewardsInYearValue.div(totalValue);
     return { apy: aprToApy(apr, 365), apr };
   }
