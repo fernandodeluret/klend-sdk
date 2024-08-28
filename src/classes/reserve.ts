@@ -712,8 +712,13 @@ export class KaminoReserve {
     await this.loadFarmStates();
     const yields: ReserveRewardYield[] = [];
     for (const farmState of this.farmData.farmStates) {
-      for (const rewardInfo of farmState.rewardInfos.filter((x) => !x.token.mint.equals(PublicKey.default))) {
+      for (const rewardInfo of farmState.rewardInfos.filter(
+        (x) => !x.token.mint.equals(PublicKey.default) && !x.rewardsAvailable.isZero()
+      )) {
         const { apy, apr } = this.calculateRewardYield(prices, rewardInfo, isDebtReward);
+        if (apy.isZero() && apr.isZero()) {
+          continue;
+        }
         yields.push({ apy, apr, rewardInfo });
       }
     }
@@ -721,17 +726,23 @@ export class KaminoReserve {
   }
 
   private calculateRewardYield(prices: KaminoPrices, rewardInfo: RewardInfo, isDebtReward: boolean) {
+    const mintAddress = this.getLiquidityMint();
+    const rewardPerTimeUnitSecond = this.getRewardPerTimeUnitSecond(rewardInfo);
+    const price = prices.spot[mintAddress.toString()];
+
+    if (rewardPerTimeUnitSecond.isZero() || price === undefined) {
+      return { apy: new Decimal(0), apr: new Decimal(0) };
+    }
     const { decimals } = this.stats;
     const totalBorrows = this.getBorrowedAmount();
     const totalSupply = this.getTotalSupply();
-    const mintAddress = this.getLiquidityMint();
+
     const totalAmount = isDebtReward
       ? lamportsToNumberDecimal(totalBorrows, decimals)
       : lamportsToNumberDecimal(totalSupply, decimals);
-    const totalValue = totalAmount.mul(prices.spot[mintAddress.toString()].price);
-    const rewardPerTimeUnitSecond = this.getRewardPerTimeUnitSecond(rewardInfo);
+    const totalValue = totalAmount.mul(price.price);
     const rewardsInYear = rewardPerTimeUnitSecond.mul(60 * 60 * 24 * 365);
-    const rewardsInYearValue = rewardsInYear.mul(prices.spot[rewardInfo.token.mint.toString()].price);
+    const rewardsInYearValue = rewardsInYear.mul(price.price);
     const apr = rewardsInYearValue.div(totalValue);
     return { apy: aprToApy(apr, 365), apr };
   }
