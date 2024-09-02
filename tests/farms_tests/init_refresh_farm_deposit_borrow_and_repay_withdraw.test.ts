@@ -93,14 +93,14 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
     await sleep(2000);
 
     const depositAndBorrowTx = await buildVersionedTransaction(
-      env.provider.connection,
+      env.connection,
       borrower.publicKey,
       depositAndBorrowIxs,
       [depositAndBorrowLookupTable]
     );
     depositAndBorrowTx.sign([borrower]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, depositAndBorrowTx, 'confirmed');
+    await sendAndConfirmVersionedTransaction(env.connection, depositAndBorrowTx, 'confirmed');
 
     const obligationAfterDepositAndBorrow = (await kaminoMarket.getUserObligationsByTag(
       VanillaObligation.tag,
@@ -130,7 +130,7 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
       numberToLamportsDecimal(toDeposit, collReserve.stats.decimals).floor().toString(),
       collReserve.getLiquidityMint(),
       borrower.publicKey,
-      await env.provider.connection.getSlot(),
+      await env.connection.getSlot(),
       new VanillaObligation(PROGRAM_ID)
     );
 
@@ -161,14 +161,14 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
     await sleep(2000);
 
     const repayAndWithdrawTx = await buildVersionedTransaction(
-      env.provider.connection,
+      env.connection,
       borrower.publicKey,
       repayAndWithdrawIxs,
       [repayAndWithdrawLookupTable]
     );
     repayAndWithdrawTx.sign([borrower]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, repayAndWithdrawTx, 'confirmed');
+    await sendAndConfirmVersionedTransaction(env.connection, repayAndWithdrawTx, 'confirmed');
 
     const obligationAfterRepayAndWithdraw = (await kaminoMarket.getUserObligationsByTag(
       VanillaObligation.tag,
@@ -254,14 +254,14 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
     await sleep(2000);
 
     const depositAndBorrowTx = await buildVersionedTransaction(
-      env.provider.connection,
+      env.connection,
       borrower.publicKey,
       depositAndBorrowIxs,
       [depositAndBorrowLookupTable]
     );
     depositAndBorrowTx.sign([borrower]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, depositAndBorrowTx, 'confirmed');
+    await sendAndConfirmVersionedTransaction(env.connection, depositAndBorrowTx, 'confirmed');
 
     const obligationAfterDepositAndBorrow = (await kaminoMarket.getUserObligationsByTag(
       VanillaObligation.tag,
@@ -302,7 +302,7 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
       numberToLamportsDecimal(toDeposit, collReserve.stats.decimals).floor().toString(),
       collReserve.getLiquidityMint(),
       borrower.publicKey,
-      await env.provider.connection.getSlot(),
+      await env.connection.getSlot(),
       new VanillaObligation(PROGRAM_ID)
     );
 
@@ -333,14 +333,14 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
     await sleep(2000);
 
     const repayAndWithdrawTx = await buildVersionedTransaction(
-      env.provider.connection,
+      env.connection,
       borrower.publicKey,
       repayAndWithdrawIxs,
       [repayAndWithdrawLookupTable]
     );
     repayAndWithdrawTx.sign([borrower]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, repayAndWithdrawTx, 'confirmed');
+    await sendAndConfirmVersionedTransaction(env.connection, repayAndWithdrawTx, 'confirmed');
 
     const obligationAfterRepayAndWithdraw = (await kaminoMarket.getUserObligationsByTag(
       VanillaObligation.tag,
@@ -432,14 +432,14 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
     await sleep(2000);
 
     const depositAndBorrowTx = await buildVersionedTransaction(
-      env.provider.connection,
+      env.connection,
       borrower.publicKey,
       depositAndBorrowIxs,
       [depositAndBorrowLookupTable]
     );
     depositAndBorrowTx.sign([borrower]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, depositAndBorrowTx, 'confirmed');
+    await sendAndConfirmVersionedTransaction(env.connection, depositAndBorrowTx, 'confirmed');
 
     const obligationAfterDepositAndBorrow = (await kaminoMarket.getUserObligationsByTag(
       VanillaObligation.tag,
@@ -482,7 +482,7 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
       numberToLamportsDecimal(toDeposit, collReserve.stats.decimals).floor().toString(),
       collReserve.getLiquidityMint(),
       borrower.publicKey,
-      await env.provider.connection.getSlot(),
+      await env.connection.getSlot(),
       new VanillaObligation(PROGRAM_ID)
     );
 
@@ -513,14 +513,14 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
     await sleep(2000);
 
     const repayAndWithdrawTx = await buildVersionedTransaction(
-      env.provider.connection,
+      env.connection,
       borrower.publicKey,
       repayAndWithdrawIxs,
       [repayAndWithdrawLookupTable]
     );
     repayAndWithdrawTx.sign([borrower]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, repayAndWithdrawTx, 'confirmed');
+    await sendAndConfirmVersionedTransaction(env.connection, repayAndWithdrawTx, 'confirmed');
 
     const obligationAfterRepayAndWithdraw = (await kaminoMarket.getUserObligationsByTag(
       VanillaObligation.tag,
@@ -615,14 +615,14 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
     await sleep(2000);
 
     const depositAndBorrowTx = await buildVersionedTransaction(
-      env.provider.connection,
+      env.connection,
       borrower.publicKey,
       depositAndBorrowIxs,
       [depositAndBorrowLookupTable]
     );
     depositAndBorrowTx.sign([borrower]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, depositAndBorrowTx, 'confirmed');
+    await sendAndConfirmVersionedTransaction(env.connection, depositAndBorrowTx, 'confirmed');
 
     const obligationAfterDepositAndBorrow = (await kaminoMarket.getUserObligationsByTag(
       VanillaObligation.tag,
@@ -665,7 +665,7 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
       numberToLamportsDecimal(toDeposit, collReserve.stats.decimals).floor().toString(),
       collReserve.getLiquidityMint(),
       borrower.publicKey,
-      await env.provider.connection.getSlot(),
+      await env.connection.getSlot(),
       new VanillaObligation(PROGRAM_ID)
     );
 
@@ -696,14 +696,14 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
     await sleep(2000);
 
     const repayAndWithdrawTx = await buildVersionedTransaction(
-      env.provider.connection,
+      env.connection,
       borrower.publicKey,
       repayAndWithdrawIxs,
       [repayAndWithdrawLookupTable]
     );
     repayAndWithdrawTx.sign([borrower]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, repayAndWithdrawTx, 'confirmed');
+    await sendAndConfirmVersionedTransaction(env.connection, repayAndWithdrawTx, 'confirmed');
 
     const obligationAfterRepayAndWithdraw = (await kaminoMarket.getUserObligationsByTag(
       VanillaObligation.tag,
@@ -805,14 +805,14 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
     await sleep(2000);
 
     const depositAndBorrowTx = await buildVersionedTransaction(
-      env.provider.connection,
+      env.connection,
       borrower.publicKey,
       depositAndBorrowIxs,
       [depositAndBorrowLookupTable]
     );
     depositAndBorrowTx.sign([borrower]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, depositAndBorrowTx, 'confirmed');
+    await sendAndConfirmVersionedTransaction(env.connection, depositAndBorrowTx, 'confirmed');
 
     const obligationAfterDepositAndBorrow = (await kaminoMarket.getUserObligationsByTag(
       VanillaObligation.tag,
@@ -849,7 +849,7 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
       numberToLamportsDecimal(toDeposit, collReserve.stats.decimals).floor().toString(),
       collReserve.getLiquidityMint(),
       borrower.publicKey,
-      await env.provider.connection.getSlot(),
+      await env.connection.getSlot(),
       new VanillaObligation(PROGRAM_ID)
     );
 
@@ -880,14 +880,14 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
     await sleep(2000);
 
     const repayAndWithdrawTx = await buildVersionedTransaction(
-      env.provider.connection,
+      env.connection,
       borrower.publicKey,
       repayAndWithdrawIxs,
       [repayAndWithdrawLookupTable]
     );
     repayAndWithdrawTx.sign([borrower]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, repayAndWithdrawTx, 'confirmed');
+    await sendAndConfirmVersionedTransaction(env.connection, repayAndWithdrawTx, 'confirmed');
 
     const obligationAfterRepayAndWithdraw = (await kaminoMarket.getUserObligationsByTag(
       VanillaObligation.tag,
@@ -956,7 +956,7 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
     }
     await sleep(2000);
 
-    await env.provider.connection.requestAirdrop(env.admin.publicKey, 1000000000000);
+    await env.connection.requestAirdrop(env.admin.publicKey, 1000000000000);
 
     for (let index = 1; index < depositSymbols.length; index++) {
       const [_, ata] = await createAta(env, env.admin.publicKey, depositMints[index]);
@@ -980,7 +980,7 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
     }
 
     const kaminoMarket = (await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -1004,7 +1004,7 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
 
     // Deposit from different depositor to the borrow reserves
     const depositor = Keypair.generate();
-    await env.provider.connection.requestAirdrop(depositor.publicKey, 10000000000);
+    await env.connection.requestAirdrop(depositor.publicKey, 10000000000);
     await sleep(1000);
     for (let index = 1; index < borrowSymbols.length; index++) {
       const [_, ata] = await createAta(env, depositor.publicKey, borrowMints[index]);
@@ -1050,12 +1050,10 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
       );
       await sleep(2000);
 
-      const tx = await buildVersionedTransaction(env.provider.connection, env.admin.publicKey, borrowIxns, [
-        borrowLookupTable,
-      ]);
+      const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, borrowIxns, [borrowLookupTable]);
       tx.sign([env.admin]);
 
-      await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'confirmed');
+      await sendAndConfirmVersionedTransaction(env.connection, tx, 'confirmed');
 
       await sleep(2000);
 
@@ -1118,14 +1116,14 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
     await sleep(2000);
 
     const depositAndBorrowTx = await buildVersionedTransaction(
-      env.provider.connection,
+      env.connection,
       borrower.publicKey,
       depositAndBorrowIxs,
       [depositAndBorrowLookupTable]
     );
     depositAndBorrowTx.sign([borrower]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, depositAndBorrowTx, 'confirmed');
+    await sendAndConfirmVersionedTransaction(env.connection, depositAndBorrowTx, 'confirmed');
     await sleep(2000);
 
     const obligationAfterDepositAndBorrow = (await kaminoMarket.getUserObligationsByTag(
@@ -1164,7 +1162,7 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
       numberToLamportsDecimal(toDeposit, collReserve.stats.decimals).floor().toString(),
       collReserve.getLiquidityMint(),
       borrower.publicKey,
-      await env.provider.connection.getSlot(),
+      await env.connection.getSlot(),
       new VanillaObligation(PROGRAM_ID)
     );
 
@@ -1195,14 +1193,14 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
     await sleep(2000);
 
     const repayAndWithdrawTx = await buildVersionedTransaction(
-      env.provider.connection,
+      env.connection,
       borrower.publicKey,
       repayAndWithdrawIxs,
       [repayAndWithdrawLookupTable]
     );
     repayAndWithdrawTx.sign([borrower]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, repayAndWithdrawTx, 'confirmed');
+    await sendAndConfirmVersionedTransaction(env.connection, repayAndWithdrawTx, 'confirmed');
 
     const obligationAfterRepayAndWithdraw = (await kaminoMarket.getUserObligationsByTag(
       VanillaObligation.tag,
@@ -1271,7 +1269,7 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
     }
     await sleep(2000);
 
-    await env.provider.connection.requestAirdrop(env.admin.publicKey, 1000000000000);
+    await env.connection.requestAirdrop(env.admin.publicKey, 1000000000000);
 
     for (let index = 1; index < depositSymbols.length; index++) {
       const [_, ata] = await createAta(env, env.admin.publicKey, depositMints[index]);
@@ -1295,7 +1293,7 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
     }
 
     const kaminoMarket = (await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -1319,7 +1317,7 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
 
     // Deposit from different depositor to the borrow reserves
     const depositor = Keypair.generate();
-    await env.provider.connection.requestAirdrop(depositor.publicKey, 10000000000);
+    await env.connection.requestAirdrop(depositor.publicKey, 10000000000);
     await sleep(1000);
     for (let index = 1; index < borrowSymbols.length; index++) {
       const [_, ata] = await createAta(env, depositor.publicKey, borrowMints[index]);
@@ -1365,12 +1363,10 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
       );
       await sleep(2000);
 
-      const tx = await buildVersionedTransaction(env.provider.connection, env.admin.publicKey, borrowIxns, [
-        borrowLookupTable,
-      ]);
+      const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, borrowIxns, [borrowLookupTable]);
       tx.sign([env.admin]);
 
-      await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'confirmed');
+      await sendAndConfirmVersionedTransaction(env.connection, tx, 'confirmed');
 
       await sleep(2000);
 
@@ -1433,14 +1429,14 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
     await sleep(2000);
 
     const depositAndBorrowTx = await buildVersionedTransaction(
-      env.provider.connection,
+      env.connection,
       borrower.publicKey,
       depositAndBorrowIxs,
       [depositAndBorrowLookupTable]
     );
     depositAndBorrowTx.sign([borrower]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, depositAndBorrowTx, 'confirmed');
+    await sendAndConfirmVersionedTransaction(env.connection, depositAndBorrowTx, 'confirmed');
     await sleep(2000);
 
     const obligationAfterDepositAndBorrow = (await kaminoMarket.getUserObligationsByTag(
@@ -1482,7 +1478,7 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
       numberToLamportsDecimal(toDeposit, collReserve.stats.decimals).floor().toString(),
       collReserve.getLiquidityMint(),
       borrower.publicKey,
-      await env.provider.connection.getSlot(),
+      await env.connection.getSlot(),
       new VanillaObligation(PROGRAM_ID)
     );
 
@@ -1513,14 +1509,14 @@ describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', functi
     await sleep(2000);
 
     const repayAndWithdrawTx = await buildVersionedTransaction(
-      env.provider.connection,
+      env.connection,
       borrower.publicKey,
       repayAndWithdrawIxs,
       [repayAndWithdrawLookupTable]
     );
     repayAndWithdrawTx.sign([borrower]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, repayAndWithdrawTx, 'confirmed');
+    await sendAndConfirmVersionedTransaction(env.connection, repayAndWithdrawTx, 'confirmed');
 
     const obligationAfterRepayAndWithdraw = (await kaminoMarket.getUserObligationsByTag(
       VanillaObligation.tag,

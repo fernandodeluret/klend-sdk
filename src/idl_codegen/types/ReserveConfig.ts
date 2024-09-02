@@ -10,10 +10,10 @@ export interface ReserveConfigFields {
   assetTier: number
   /** Flat rate that goes to the host */
   hostFixedInterestRateBps: number
-  /** Boost for side (debt or collateral) */
-  multiplierSideBoost: Array<number>
-  /** Reward points multiplier per obligation type */
-  multiplierTagBoost: Array<number>
+  /** [DEPRECATED] Boost for side (debt or collateral) */
+  reserved2: Array<number>
+  /** [DEPRECATED] Reward points multiplier per obligation type */
+  reserved3: Array<number>
   /** Protocol take rate is the amount borrowed interest protocol receives, as a percentage */
   protocolTakeRatePct: number
   /** Cut of the liquidation bonus that the protocol receives, as a percentage */
@@ -80,10 +80,10 @@ export interface ReserveConfigJSON {
   assetTier: number
   /** Flat rate that goes to the host */
   hostFixedInterestRateBps: number
-  /** Boost for side (debt or collateral) */
-  multiplierSideBoost: Array<number>
-  /** Reward points multiplier per obligation type */
-  multiplierTagBoost: Array<number>
+  /** [DEPRECATED] Boost for side (debt or collateral) */
+  reserved2: Array<number>
+  /** [DEPRECATED] Reward points multiplier per obligation type */
+  reserved3: Array<number>
   /** Protocol take rate is the amount borrowed interest protocol receives, as a percentage */
   protocolTakeRatePct: number
   /** Cut of the liquidation bonus that the protocol receives, as a percentage */
@@ -151,10 +151,10 @@ export class ReserveConfig {
   readonly assetTier: number
   /** Flat rate that goes to the host */
   readonly hostFixedInterestRateBps: number
-  /** Boost for side (debt or collateral) */
-  readonly multiplierSideBoost: Array<number>
-  /** Reward points multiplier per obligation type */
-  readonly multiplierTagBoost: Array<number>
+  /** [DEPRECATED] Boost for side (debt or collateral) */
+  readonly reserved2: Array<number>
+  /** [DEPRECATED] Reward points multiplier per obligation type */
+  readonly reserved3: Array<number>
   /** Protocol take rate is the amount borrowed interest protocol receives, as a percentage */
   readonly protocolTakeRatePct: number
   /** Cut of the liquidation bonus that the protocol receives, as a percentage */
@@ -217,8 +217,8 @@ export class ReserveConfig {
     this.status = fields.status
     this.assetTier = fields.assetTier
     this.hostFixedInterestRateBps = fields.hostFixedInterestRateBps
-    this.multiplierSideBoost = fields.multiplierSideBoost
-    this.multiplierTagBoost = fields.multiplierTagBoost
+    this.reserved2 = fields.reserved2
+    this.reserved3 = fields.reserved3
     this.protocolTakeRatePct = fields.protocolTakeRatePct
     this.protocolLiquidationFeePct = fields.protocolLiquidationFeePct
     this.loanToValuePct = fields.loanToValuePct
@@ -261,8 +261,8 @@ export class ReserveConfig {
         borsh.u8("status"),
         borsh.u8("assetTier"),
         borsh.u16("hostFixedInterestRateBps"),
-        borsh.array(borsh.u8(), 2, "multiplierSideBoost"),
-        borsh.array(borsh.u8(), 8, "multiplierTagBoost"),
+        borsh.array(borsh.u8(), 2, "reserved2"),
+        borsh.array(borsh.u8(), 8, "reserved3"),
         borsh.u8("protocolTakeRatePct"),
         borsh.u8("protocolLiquidationFeePct"),
         borsh.u8("loanToValuePct"),
@@ -301,8 +301,8 @@ export class ReserveConfig {
       status: obj.status,
       assetTier: obj.assetTier,
       hostFixedInterestRateBps: obj.hostFixedInterestRateBps,
-      multiplierSideBoost: obj.multiplierSideBoost,
-      multiplierTagBoost: obj.multiplierTagBoost,
+      reserved2: obj.reserved2,
+      reserved3: obj.reserved3,
       protocolTakeRatePct: obj.protocolTakeRatePct,
       protocolLiquidationFeePct: obj.protocolLiquidationFeePct,
       loanToValuePct: obj.loanToValuePct,
@@ -340,8 +340,8 @@ export class ReserveConfig {
       status: fields.status,
       assetTier: fields.assetTier,
       hostFixedInterestRateBps: fields.hostFixedInterestRateBps,
-      multiplierSideBoost: fields.multiplierSideBoost,
-      multiplierTagBoost: fields.multiplierTagBoost,
+      reserved2: fields.reserved2,
+      reserved3: fields.reserved3,
       protocolTakeRatePct: fields.protocolTakeRatePct,
       protocolLiquidationFeePct: fields.protocolLiquidationFeePct,
       loanToValuePct: fields.loanToValuePct,
@@ -381,8 +381,8 @@ export class ReserveConfig {
       status: this.status,
       assetTier: this.assetTier,
       hostFixedInterestRateBps: this.hostFixedInterestRateBps,
-      multiplierSideBoost: this.multiplierSideBoost,
-      multiplierTagBoost: this.multiplierTagBoost,
+      reserved2: this.reserved2,
+      reserved3: this.reserved3,
       protocolTakeRatePct: this.protocolTakeRatePct,
       protocolLiquidationFeePct: this.protocolLiquidationFeePct,
       loanToValuePct: this.loanToValuePct,
@@ -421,8 +421,8 @@ export class ReserveConfig {
       status: obj.status,
       assetTier: obj.assetTier,
       hostFixedInterestRateBps: obj.hostFixedInterestRateBps,
-      multiplierSideBoost: obj.multiplierSideBoost,
-      multiplierTagBoost: obj.multiplierTagBoost,
+      reserved2: obj.reserved2,
+      reserved3: obj.reserved3,
       protocolTakeRatePct: obj.protocolTakeRatePct,
       protocolLiquidationFeePct: obj.protocolLiquidationFeePct,
       loanToValuePct: obj.loanToValuePct,

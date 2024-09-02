@@ -65,7 +65,7 @@ describe('obligation', function () {
         systemProgram: SystemProgram.programId,
       }
     );
-    await sendTransactionV0(env.provider.connection, env.admin, [initReferralIx, initObligationIx]);
+    await sendTransactionV0(env.connection, env.admin, [initReferralIx, initObligationIx]);
     await sleep(2000);
     const fetchedObligation = (await kaminoMarket.getObligationByAddress(obligation))!;
 
@@ -126,7 +126,7 @@ describe('obligation', function () {
       kaminoMarket,
       reserve,
       fetchedObligation.state.borrows[0],
-      await env.provider.connection.getSlot()
+      await env.connection.getSlot()
     );
 
     console.log('interest rate: ' + interestRate);

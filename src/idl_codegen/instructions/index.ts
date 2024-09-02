@@ -33,6 +33,8 @@ export type {
 } from "./withdrawProtocolFee"
 export { refreshReserve } from "./refreshReserve"
 export type { RefreshReserveAccounts } from "./refreshReserve"
+export { refreshReservesBatch } from "./refreshReservesBatch"
+export type { RefreshReservesBatchArgs } from "./refreshReservesBatch"
 export { depositReserveLiquidity } from "./depositReserveLiquidity"
 export type {
   DepositReserveLiquidityArgs,

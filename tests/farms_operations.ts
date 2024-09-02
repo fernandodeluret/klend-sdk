@@ -28,7 +28,7 @@ export async function initializeFarmsForReserve(
 
   const [lendingMarketAuthority, _] = lendingMarketAuthPda(lendingMarket, env.program.programId);
 
-  const lendingMarketOwner = (await LendingMarket.fetch(env.provider.connection, lendingMarket))?.lendingMarketOwner!;
+  const lendingMarketOwner = (await LendingMarket.fetch(env.connection, lendingMarket))?.lendingMarketOwner!;
 
   const SIZE_FARM_STATE = 8336;
   const farmState: Keypair = Keypair.generate();
@@ -36,7 +36,7 @@ export async function initializeFarmsForReserve(
     fromPubkey: env.admin.publicKey,
     newAccountPubkey: farmState.publicKey,
     space: SIZE_FARM_STATE,
-    lamports: await env.provider.connection.getMinimumBalanceForRentExemption(SIZE_FARM_STATE),
+    lamports: await env.connection.getMinimumBalanceForRentExemption(SIZE_FARM_STATE),
     programId: farmsId,
   });
 
@@ -58,7 +58,7 @@ export async function initializeFarmsForReserve(
     }
   );
 
-  const tx = await buildVersionedTransaction(env.provider.connection, lendingMarketOwner, [createFarmIx, ix]);
+  const tx = await buildVersionedTransaction(env.connection, lendingMarketOwner, [createFarmIx, ix]);
 
   if (simulate) {
     await simulateClientTransaction(env, tx);
@@ -69,14 +69,14 @@ export async function initializeFarmsForReserve(
       if (!env.admin.publicKey.equals(lendingMarketOwner)) {
         throw new Error('Lending market owner must be the admin');
       }
-      const sig = await buildAndSendTxnWithLogs(env.provider.connection, tx, env.admin, [farmState], true);
+      const sig = await buildAndSendTxnWithLogs(env.connection, tx, env.admin, [farmState], true);
       console.log('Transaction signature: ' + sig);
     }
   }
 }
 
 async function simulateClientTransaction(env: Env, tx: VersionedTransaction) {
-  const txSimulate = await env.provider.connection.simulateTransaction(tx);
+  const txSimulate = await env.connection.simulateTransaction(tx);
   console.log(txSimulate.value.logs);
 
   const baseUrl = 'https://explorer.solana.com/tx/inspector?';
@@ -94,10 +94,10 @@ export async function addRewardToFarm(
   farmsGlobalConfigOverride?: string
 ): Promise<TransactionSignature> {
   const farmsGlobalConfig = new PublicKey(farmsGlobalConfigOverride ?? '6UodrBjL2ZreDy7QdR4YV1oxqMBjVYSEyrFpctqqwGwL');
-  const farmsClient = new Farms(env.provider.connection);
-  const reserveState: Reserve = (await Reserve.fetch(env.provider.connection, reserve))!!;
+  const farmsClient = new Farms(env.connection);
+  const reserveState: Reserve = (await Reserve.fetch(env.connection, reserve))!!;
   const farmAddress = kind === 'Collateral' ? reserveState.farmCollateral : reserveState.farmDebt;
-  const tokenProgram = (await env.provider.connection.getAccountInfo(rewardMint))!.owner;
+  const tokenProgram = (await env.connection.getAccountInfo(rewardMint))!.owner;
   const ix = await farmsClient.addRewardToFarmIx(
     env.admin.publicKey,
     farmsGlobalConfig,
@@ -105,8 +105,8 @@ export async function addRewardToFarm(
     rewardMint,
     tokenProgram
   );
-  const tx = await buildVersionedTransaction(env.provider.connection, env.admin.publicKey, [ix]);
-  const sig = await buildAndSendTxnWithLogs(env.provider.connection, tx, env.admin, []);
+  const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, [ix]);
+  const sig = await buildAndSendTxnWithLogs(env.connection, tx, env.admin, []);
   return sig;
 }
 
@@ -117,14 +117,14 @@ export async function topUpRewardToFarm(
   reserve: PublicKey,
   kind: string
 ): Promise<TransactionSignature> {
-  const farmsClient = new Farms(env.provider.connection);
+  const farmsClient = new Farms(env.connection);
   await sleep(3000);
-  const reserveState: Reserve = (await Reserve.fetch(env.provider.connection, reserve))!!;
+  const reserveState: Reserve = (await Reserve.fetch(env.connection, reserve))!!;
   const farmAddress = kind === 'Collateral' ? reserveState.farmCollateral : reserveState.farmDebt;
 
   const ix = await farmsClient.addRewardAmountToFarmIx(env.admin.publicKey, farmAddress, rewardMint, amount);
-  const tx = await buildVersionedTransaction(env.provider.connection, env.admin.publicKey, [ix]);
-  const sig = await buildAndSendTxnWithLogs(env.provider.connection, tx, env.admin, []);
+  const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, [ix]);
+  const sig = await buildAndSendTxnWithLogs(env.connection, tx, env.admin, []);
   return sig;
 }
 
@@ -135,9 +135,9 @@ export async function updateRps(
   reserve: PublicKey,
   kind: string
 ): Promise<TransactionSignature> {
-  const farmsClient = new Farms(env.provider.connection);
+  const farmsClient = new Farms(env.connection);
   await sleep(3000);
-  const reserveState: Reserve = (await Reserve.fetch(env.provider.connection, reserve))!!;
+  const reserveState: Reserve = (await Reserve.fetch(env.connection, reserve))!!;
   const farmAddress = kind === 'Collateral' ? reserveState.farmCollateral : reserveState.farmDebt;
   const ix = await farmsClient.updateFarmConfigIx(
     env.admin.publicKey,
@@ -146,8 +146,8 @@ export async function updateRps(
     new FarmConfigOption.UpdateRewardRps(),
     rps
   );
-  const tx = await buildVersionedTransaction(env.provider.connection, env.admin.publicKey, [ix]);
-  const sig = await buildAndSendTxnWithLogs(env.provider.connection, tx, env.admin, []);
+  const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, [ix]);
+  const sig = await buildAndSendTxnWithLogs(env.connection, tx, env.admin, []);
   return sig;
 }
 
@@ -162,5 +162,5 @@ export async function getObligationFarmState(
     farmsId
   )[0];
 
-  return await UserState.fetch(env.provider.connection, pda);
+  return await UserState.fetch(env.connection, pda);
 }

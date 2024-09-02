@@ -737,7 +737,7 @@ describe('Repay with collateral SDK tests', function () {
     await sleep(2000);
 
     const referrer = Keypair.generate();
-    await env.provider.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
+    await env.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
 
     console.log('Creating user ===');
     const borrower = await newUser(

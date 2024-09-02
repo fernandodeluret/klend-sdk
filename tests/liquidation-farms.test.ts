@@ -853,9 +853,9 @@ async function createLiquidatorLut(env: Env, market: KaminoMarket, liquidator: K
   );
   const extraLutIxs = extendLookupTableIxs(liquidator.publicKey, liquidatorLookupTable, [...reserves, ...farmStates]);
   for (const txIxns of [...txsIxns, extraLutIxs]) {
-    const tx = await buildVersionedTransaction(env.provider.connection, liquidator.publicKey, txIxns);
+    const tx = await buildVersionedTransaction(env.connection, liquidator.publicKey, txIxns);
     tx.sign([liquidator]);
-    await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'confirmed');
+    await sendAndConfirmVersionedTransaction(env.connection, tx, 'confirmed');
     await sleep(2000);
   }
   return liquidatorLookupTable;

@@ -333,7 +333,7 @@ async function initFarmsForReserveCommand(
   simulate: boolean,
   programId: PublicKey = PROGRAM_ID
 ) {
-  const reserveState = await Reserve.fetch(env.provider.connection, new PublicKey(reserve), programId);
+  const reserveState = await Reserve.fetch(env.connection, new PublicKey(reserve), programId);
   await initializeFarmsForReserve(
     env,
     reserveState!!.lendingMarket,
@@ -367,7 +367,7 @@ async function downloadUserMetadatasWithFilter(
   output: string,
   programId: PublicKey
 ) {
-  const userMetadatas = await getAllUserMetadatasWithFilter(env.provider.connection, filter, programId);
+  const userMetadatas = await getAllUserMetadatasWithFilter(env.connection, filter, programId);
 
   // help mapping
   const userPubkeys = userMetadatas.map((userMetadatas) => userMetadatas.address.toString());

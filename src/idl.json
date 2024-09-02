@@ -424,6 +424,16 @@
       "args": []
     },
     {
+      "name": "refreshReservesBatch",
+      "accounts": [],
+      "args": [
+        {
+          "name": "skipPriceUpdates",
+          "type": "bool"
+        }
+      ]
+    },
+    {
       "name": "depositReserveLiquidity",
       "accounts": [
         {
@@ -1309,7 +1319,7 @@
         },
         {
           "name": "reserveLiquidityMint",
-          "isMut": true,
+          "isMut": false,
           "isSigner": false
         },
         {
@@ -1347,10 +1357,7 @@
         {
           "name": "tokenProgram",
           "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "flash loans on token_22 tokens are currently purposefully disabled"
-          ]
+          "isSigner": false
         }
       ],
       "args": [
@@ -1389,7 +1396,7 @@
         },
         {
           "name": "reserveLiquidityMint",
-          "isMut": true,
+          "isMut": false,
           "isSigner": false
         },
         {
@@ -1427,10 +1434,7 @@
         {
           "name": "tokenProgram",
           "isMut": false,
-          "isSigner": false,
-          "docs": [
-            "flash loans on token_22 tokens are currently purposefully disabled"
-          ]
+          "isSigner": false
         }
       ],
       "args": [
@@ -1998,9 +2002,9 @@
             "type": "publicKey"
           },
           {
-            "name": "multiplierPointsTagBoost",
+            "name": "reserved1",
             "docs": [
-              "Reward points multiplier per obligation type"
+              "[DEPRECATED] Reward points multiplier per obligation type"
             ],
             "type": {
               "array": [
@@ -2627,10 +2631,10 @@
             "name": "DeleveragingThresholdSlotsPerBps"
           },
           {
-            "name": "UpdateMultiplierSideBoost"
+            "name": "DeprecatedUpdateMultiplierSideBoost"
           },
           {
-            "name": "UpdateMultiplierTagBoost"
+            "name": "DeprecatedUpdateMultiplierTagBoost"
           },
           {
             "name": "UpdateReserveStatus"
@@ -2764,7 +2768,7 @@
             "name": "UpdateReferralFeeBps"
           },
           {
-            "name": "UpdateMultiplierPoints"
+            "name": "DeprecatedUpdateMultiplierPoints"
           },
           {
             "name": "UpdatePriceRefreshTriggerToMaxAgePct"
@@ -2780,6 +2784,9 @@
           },
           {
             "name": "UpdateMinValueSkipPriorityLiqCheck"
+          },
+          {
+            "name": "UpdatePaddingFields"
           }
         ]
       }
@@ -3152,9 +3159,9 @@
             "type": "u16"
           },
           {
-            "name": "multiplierSideBoost",
+            "name": "reserved2",
             "docs": [
-              "Boost for side (debt or collateral)"
+              "[DEPRECATED] Boost for side (debt or collateral)"
             ],
             "type": {
               "array": [
@@ -3164,9 +3171,9 @@
             }
           },
           {
-            "name": "multiplierTagBoost",
+            "name": "reserved3",
             "docs": [
-              "Reward points multiplier per obligation type"
+              "[DEPRECATED] Reward points multiplier per obligation type"
             ],
             "type": {
               "array": [
@@ -4385,6 +4392,21 @@
       "code": 6108,
       "name": "UnsupportedTokenExtension",
       "msg": "Mint has a token (2022) extension that is not supported"
+    },
+    {
+      "code": 6109,
+      "name": "InvalidTokenAccount",
+      "msg": "Can't have an spl token mint with a t22 account"
+    },
+    {
+      "code": 6110,
+      "name": "DepositDisabledOutsideElevationGroup",
+      "msg": "Can't deposit into this reserve outside elevation group"
+    },
+    {
+      "code": 6111,
+      "name": "CannotCalculateReferralAmountDueToSlotsMismatch",
+      "msg": "Cannot calculate referral amount due to slots mismatch"
     }
   ]
 }

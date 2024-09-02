@@ -64,7 +64,7 @@ describe('flash loan', () => {
       )
     );
 
-    const tx = await buildVersionedTransaction(env.provider.connection, payer.publicKey, ixns);
+    const tx = await buildVersionedTransaction(env.connection, payer.publicKey, ixns);
     const txHash = await buildAndSendTxnWithLogs(kaminoMarket.getConnection(), tx, payer, []);
     console.log(txHash);
   });

@@ -596,18 +596,6 @@ function parseForChangesMarketConfigAndGetIxs(
           ),
         });
       }
-    } else if (key === 'multiplierPointsTagBoost') {
-      for (let i = 0; i < market.multiplierPointsTagBoost.length; i++) {
-        if (market.multiplierPointsTagBoost[i] !== newMarket.multiplierPointsTagBoost[i]) {
-          updateLendingMarketIxnsArgs.push({
-            mode: UpdateLendingMarketMode.UpdateMultiplierPoints.discriminator,
-            value: updateMarketConfigEncodedValue(
-              UpdateLendingMarketMode.UpdateMultiplierPoints.discriminator,
-              newMarket.multiplierPointsTagBoost
-            ),
-          });
-        }
-      }
     } else if (key === 'minNetValueInObligationSf') {
       if (!market.minNetValueInObligationSf.eq(newMarket.minNetValueInObligationSf)) {
         updateLendingMarketIxnsArgs.push({
@@ -677,7 +665,6 @@ function updateMarketConfigEncodedValue(
   value: number | number[] | PublicKey | ElevationGroup | string
 ): Buffer {
   let buffer: Buffer = Buffer.alloc(72);
-  let valueArray: number[] = [];
   let pkBuffer: Buffer;
   let valueBigInt: bigint;
 
@@ -700,12 +687,6 @@ function updateMarketConfigEncodedValue(
     case UpdateLendingMarketMode.UpdateMinValueSkipPriorityLiqCheck.discriminator:
       value = value as number;
       buffer.writeBigUint64LE(BigInt(value), 0);
-      break;
-    case UpdateLendingMarketMode.UpdateMultiplierPoints.discriminator:
-      valueArray = value as number[];
-      for (let i = 0; i < valueArray.length; i++) {
-        buffer.writeUIntLE(valueArray[i], i, 1);
-      }
       break;
     case UpdateLendingMarketMode.UpdateOwner.discriminator:
     case UpdateLendingMarketMode.UpdateRiskCouncil.discriminator:

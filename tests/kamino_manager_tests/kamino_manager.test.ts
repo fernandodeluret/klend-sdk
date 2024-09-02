@@ -28,14 +28,14 @@ import { assert } from 'chai';
 describe('Kamino Manager Tests', function () {
   it('kamino_manager_init_market', async function () {
     const env = await initEnv('localnet');
-    const kaminoManager = new KaminoManager(env.provider.connection);
+    const kaminoManager = new KaminoManager(env.connection);
 
     // Creating a market
     const { market: marketKp, ixns: createMarketIxns } = await kaminoManager.createMarketIxs({
       admin: env.admin.publicKey,
     });
     const _createMarketSig = await buildAndSendTxn(
-      env.provider.connection,
+      env.connection,
       env.admin,
       createMarketIxns,
       [marketKp],
@@ -46,7 +46,7 @@ describe('Kamino Manager Tests', function () {
 
   it('kamino_manager_add_assets_to_market', async function () {
     const env = await initEnv('localnet');
-    const kaminoManager = new KaminoManager(env.provider.connection);
+    const kaminoManager = new KaminoManager(env.connection);
 
     const mintUSDC = await createMint(env, env.admin.publicKey, 6);
 
@@ -55,7 +55,7 @@ describe('Kamino Manager Tests', function () {
       admin: env.admin.publicKey,
     });
     const _createMarketSig = await buildAndSendTxn(
-      env.provider.connection,
+      env.connection,
       env.admin,
       createMarketIxns,
       [marketKp],
@@ -96,7 +96,7 @@ describe('Kamino Manager Tests', function () {
     const computeBudgetIx = buildComputeBudgetIx(400_000);
 
     const _createsolReserveSig = await buildAndSendTxn(
-      env.provider.connection,
+      env.connection,
       env.admin,
       createsolReserveTxnIxns[0],
       [solReserveKp],
@@ -105,7 +105,7 @@ describe('Kamino Manager Tests', function () {
     );
 
     const _updatesolReserveSig = await buildAndSendTxn(
-      env.provider.connection,
+      env.connection,
       env.admin,
       [computeBudgetIx, ...createsolReserveTxnIxns[1]],
       [],
@@ -120,7 +120,7 @@ describe('Kamino Manager Tests', function () {
     });
 
     const _createusdcReserveSig = await buildAndSendTxn(
-      env.provider.connection,
+      env.connection,
       env.admin,
       createusdcReserveTxnIxns[0],
       [usdcReserveKp],
@@ -129,7 +129,7 @@ describe('Kamino Manager Tests', function () {
     );
 
     const _updateusdcReserveSig = await buildAndSendTxn(
-      env.provider.connection,
+      env.connection,
       env.admin,
       [computeBudgetIx, ...createusdcReserveTxnIxns[1]],
       [],
@@ -140,7 +140,7 @@ describe('Kamino Manager Tests', function () {
 
   it('kamino_manager_create_vault', async function () {
     const env = await initEnv('localnet');
-    const kaminoManager = new KaminoManager(env.provider.connection);
+    const kaminoManager = new KaminoManager(env.connection);
 
     const marketAccounts = await createMarketWithTwoAssets(env, kaminoManager);
 
@@ -154,22 +154,22 @@ describe('Kamino Manager Tests', function () {
     });
 
     const { vault: vaultKp, ixns: instructions } = await kaminoManager.createVaultIxs(kaminoVaultConfig);
-    await buildAndSendTxn(env.provider.connection, env.admin, instructions, [vaultKp], [], 'InitVault');
+    await buildAndSendTxn(env.connection, env.admin, instructions, [vaultKp], [], 'InitVault');
   });
 
   it('kamino_manager_update_reserve_oracle', async function () {
     const env = await initEnv('localnet');
-    const kaminoManager = new KaminoManager(env.provider.connection);
+    const kaminoManager = new KaminoManager(env.connection);
     const marketAccounts = await createMarketWithTwoAssets(env, kaminoManager);
 
     const marketWithAddress: MarketWithAddress = {
       address: marketAccounts.marketAddress,
-      state: (await LendingMarket.fetch(env.provider.connection, marketAccounts.marketAddress))!,
+      state: (await LendingMarket.fetch(env.connection, marketAccounts.marketAddress))!,
     };
 
     const solReserveWithAddress: ReserveWithAddress = {
       address: marketAccounts.solReserve,
-      state: (await Reserve.fetch(env.provider.connection, marketAccounts.solReserve))!,
+      state: (await Reserve.fetch(env.connection, marketAccounts.solReserve))!,
     };
 
     // Get oracle configs
@@ -182,12 +182,12 @@ describe('Kamino Manager Tests', function () {
       oracleConfigs[0],
       oracleConfigs[52]
     );
-    await buildAndSendTxn(env.provider.connection, env.admin, updateReserveIx, [], [], 'UpdateReserveScopeFeed');
+    await buildAndSendTxn(env.connection, env.admin, updateReserveIx, [], [], 'UpdateReserveScopeFeed');
   });
 
   it('kamino_manager_update_vault_allocation', async function () {
     const env = await initEnv('localnet');
-    const kaminoManager = new KaminoManager(env.provider.connection);
+    const kaminoManager = new KaminoManager(env.connection);
 
     const [marketAccounts1, marketAccounts2] = await createTwoMarketsWithTwoAssets(env, kaminoManager);
 
@@ -201,11 +201,11 @@ describe('Kamino Manager Tests', function () {
     });
 
     const { vault: vaultKp, ixns: instructions } = await kaminoManager.createVaultIxs(kaminoVaultConfig);
-    await buildAndSendTxn(env.provider.connection, env.admin, instructions, [vaultKp], [], 'InitVault');
+    await buildAndSendTxn(env.connection, env.admin, instructions, [vaultKp], [], 'InitVault');
 
     const vault = new KaminoVault(vaultKp.publicKey);
 
-    const reserveStates = await Reserve.fetchMultiple(env.provider.connection, [
+    const reserveStates = await Reserve.fetchMultiple(env.connection, [
       marketAccounts1.usdcReserve,
       marketAccounts2.usdcReserve,
     ]);
@@ -227,7 +227,7 @@ describe('Kamino Manager Tests', function () {
     const ix2 = await kaminoManager.updateVaultReserveAllocationIxs(vault, secondReserveAllocationConfig);
 
     const _updateTxSignature = await buildAndSendTxn(
-      env.provider.connection,
+      env.connection,
       env.admin,
       [ix1, ix2],
       [],
@@ -236,7 +236,7 @@ describe('Kamino Manager Tests', function () {
     );
 
     await sleep(2000);
-    const latestVaultState = await vault.reloadState(env.provider.connection);
+    const latestVaultState = await vault.reloadState(env.connection);
 
     assert.equal(latestVaultState.vaultAllocationStrategy[0].targetAllocationWeight.toNumber(), 100);
     assert.equal(latestVaultState.vaultAllocationStrategy[1].targetAllocationWeight.toNumber(), 200);
@@ -254,7 +254,7 @@ describe('Kamino Manager Tests', function () {
 
   it('kamino_manager_deposit_to_vault', async function () {
     const env = await initEnv('localnet');
-    const kaminoManager = new KaminoManager(env.provider.connection);
+    const kaminoManager = new KaminoManager(env.connection);
 
     const vaultMarketAccounts = await createVaultsWithTwoReservesMarketsWithTwoAssets(env, kaminoManager);
 
@@ -262,23 +262,16 @@ describe('Kamino Manager Tests', function () {
     const solAmountToDeposit = new Decimal(3.0);
 
     const user = Keypair.generate();
-    await env.provider.connection.requestAirdrop(user.publicKey, solAmount * LAMPORTS_PER_SOL);
+    await env.connection.requestAirdrop(user.publicKey, solAmount * LAMPORTS_PER_SOL);
 
     const solVault = new KaminoVault(vaultMarketAccounts.solVaultAddress);
 
     const depositIx = await kaminoManager.depositToVaultIxs(user.publicKey, solVault, solAmountToDeposit);
 
-    const _despositTxSignature = await buildAndSendTxn(
-      env.provider.connection,
-      user,
-      [...depositIx],
-      [],
-      [],
-      'DepositToVault'
-    );
+    const _despositTxSignature = await buildAndSendTxn(env.connection, user, [...depositIx], [], [], 'DepositToVault');
 
     await sleep(2000);
-    const latestVaultState = await solVault.reloadState(env.provider.connection);
+    const latestVaultState = await solVault.reloadState(env.connection);
     const vaultTokenVaultBalance = await getTokenAccountBalance(env.provider, latestVaultState.tokenVault);
     const userSharesBalance = await kaminoManager.getUserSharesBalanceSingleVault(user.publicKey, solVault);
 
@@ -290,7 +283,7 @@ describe('Kamino Manager Tests', function () {
 
   it('kamino_manager_withdraw_from_vault_uninvested', async function () {
     const env = await initEnv('localnet');
-    const kaminoManager = new KaminoManager(env.provider.connection);
+    const kaminoManager = new KaminoManager(env.connection);
 
     const vaultMarketAccounts = await createVaultsWithTwoReservesMarketsWithTwoAssets(env, kaminoManager);
 
@@ -298,23 +291,16 @@ describe('Kamino Manager Tests', function () {
     const solAmountToDeposit = new Decimal(3.0);
 
     const user = Keypair.generate();
-    await env.provider.connection.requestAirdrop(user.publicKey, solAmount * LAMPORTS_PER_SOL);
+    await env.connection.requestAirdrop(user.publicKey, solAmount * LAMPORTS_PER_SOL);
 
     const solVault = new KaminoVault(vaultMarketAccounts.solVaultAddress);
 
     // Deposit to Vault
     const depositIx = await kaminoManager.depositToVaultIxs(user.publicKey, solVault, solAmountToDeposit);
 
-    const _depositTxSignature = await buildAndSendTxn(
-      env.provider.connection,
-      user,
-      [...depositIx],
-      [],
-      [],
-      'DepositToVault'
-    );
+    const _depositTxSignature = await buildAndSendTxn(env.connection, user, [...depositIx], [], [], 'DepositToVault');
 
-    await solVault.reloadState(env.provider.connection);
+    await solVault.reloadState(env.connection);
 
     // Withdraw from Vault
     const userSharesForVault = await kaminoManager.getUserSharesBalanceSingleVault(user.publicKey, solVault);
@@ -325,11 +311,11 @@ describe('Kamino Manager Tests', function () {
       user.publicKey,
       solVault,
       userSharesForVault,
-      await env.provider.connection.getSlot('confirmed')
+      await env.connection.getSlot('confirmed')
     );
 
     const _withdrawTxSignature = await buildAndSendTxn(
-      env.provider.connection,
+      env.connection,
       user,
       [...withdrawIxs],
       [],
@@ -338,7 +324,7 @@ describe('Kamino Manager Tests', function () {
     );
 
     await sleep(2000);
-    const latestVaultState = await solVault.reloadState(env.provider.connection);
+    const latestVaultState = await solVault.reloadState(env.connection);
     const vaultTokenVaultBalance = await getTokenAccountBalance(env.provider, latestVaultState.tokenVault);
     const userSharesBalance = await kaminoManager.getUserSharesBalanceSingleVault(user.publicKey, solVault);
 
@@ -349,7 +335,7 @@ describe('Kamino Manager Tests', function () {
 
   it('kamino_manager_invest', async function () {
     const env = await initEnv('localnet');
-    const kaminoManager = new KaminoManager(env.provider.connection);
+    const kaminoManager = new KaminoManager(env.connection);
 
     const vaultMarketAccounts = await createVaultsWithTwoReservesMarketsWithTwoAssets(env, kaminoManager);
 
@@ -357,23 +343,16 @@ describe('Kamino Manager Tests', function () {
     const solAmountToDeposit = new Decimal(3.0);
 
     const user = Keypair.generate();
-    await env.provider.connection.requestAirdrop(user.publicKey, solAmount * LAMPORTS_PER_SOL);
+    await env.connection.requestAirdrop(user.publicKey, solAmount * LAMPORTS_PER_SOL);
 
     const solVault = new KaminoVault(vaultMarketAccounts.solVaultAddress);
 
     // Deposit to Vault
     const depositIx = await kaminoManager.depositToVaultIxs(user.publicKey, solVault, solAmountToDeposit);
 
-    const _depositTxSignature = await buildAndSendTxn(
-      env.provider.connection,
-      user,
-      [...depositIx],
-      [],
-      [],
-      'DepositToVault'
-    );
+    const _depositTxSignature = await buildAndSendTxn(env.connection, user, [...depositIx], [], [], 'DepositToVault');
 
-    await solVault.reloadState(env.provider.connection);
+    await solVault.reloadState(env.connection);
 
     // Withdraw from Vault
     const userSharesForVault = await kaminoManager.getUserSharesBalanceSingleVault(user.publicKey, solVault);
@@ -385,7 +364,7 @@ describe('Kamino Manager Tests', function () {
     // TODO: This won't work until we update the SDK to the latest version of klend master codegen
     // Current SDK is running on an older version of the codegen, for latest klend deployed on mainnet
     // const _withdrawTxSignature = await buildAndSendTxn(
-    //   env.provider.connection,
+    //   env.connection,
     //   env.admin,
     //   [...investIxs],
     //   [],

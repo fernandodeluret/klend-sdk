@@ -49,7 +49,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     const decimalsStsol = 9;
 
     const expectedDebtTokenAtaBalance = await getExpectedTokenBalanceAfterBorrow(
-      env.provider.connection,
+      env.connection,
       tokenAMint,
       depositor.publicKey,
       new Decimal(0),
@@ -57,7 +57,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     );
 
     const swapper = await getTokenToKtokenSwapper(
-      env.provider.connection,
+      env.connection,
       kaminoMarket,
       kamino,
       depositor.publicKey,
@@ -83,14 +83,14 @@ describe('Leverage SDK kTokens swapper tests', function () {
     );
     await sleep(2000);
 
-    const tx = await buildVersionedTransaction(env.provider.connection, depositor.publicKey, swapIxns, [
+    const tx = await buildVersionedTransaction(env.connection, depositor.publicKey, swapIxns, [
       // ...lookupTableAddresses,
       swapperLookupTable,
     ]);
     tx.sign([depositor]);
     tx.sign([env.admin]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'processed', { skipPreflight: true });
+    await sendAndConfirmVersionedTransaction(env.connection, tx, 'processed', { skipPreflight: true });
 
     await sleep(2000);
     const depositorKtokenAta = getAssociatedTokenAddress(ktokenMint, depositor.publicKey);
@@ -101,7 +101,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     const shareData = await kamino.getStrategyShareData(strategy?.address!);
     const usdInvested = 2 * 20;
     console.log('shareData ', JSON.stringify(shareData));
-    const kTokenDecimals = (await getMint(env.provider.connection, ktokenMint)).decimals;
+    const kTokenDecimals = (await getMint(env.connection, ktokenMint)).decimals;
     console.log('expected: ', (shareData.price.toNumber() * depositorKtokenBalance) / 10 ** kTokenDecimals);
     assertFuzzyEq((shareData.price.toNumber() * depositorKtokenBalance) / 10 ** kTokenDecimals, usdInvested, slippage);
   });
@@ -138,7 +138,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     const decimalsStsol = 9;
 
     const expectedDebtTokenAtaBalance = await getExpectedTokenBalanceAfterBorrow(
-      env.provider.connection,
+      env.connection,
       tokenBMint,
       depositor.publicKey,
       new Decimal(0),
@@ -146,7 +146,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     );
 
     const swapper = await getTokenToKtokenSwapper(
-      env.provider.connection,
+      env.connection,
       kaminoMarket,
       kamino,
       depositor.publicKey,
@@ -172,14 +172,14 @@ describe('Leverage SDK kTokens swapper tests', function () {
     );
     await sleep(2000);
 
-    const tx = await buildVersionedTransaction(env.provider.connection, depositor.publicKey, swapIxns, [
+    const tx = await buildVersionedTransaction(env.connection, depositor.publicKey, swapIxns, [
       // ...lookupTableAddresses,
       swapperLookupTable,
     ]);
     tx.sign([depositor]);
     tx.sign([env.admin]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'processed', { skipPreflight: true });
+    await sendAndConfirmVersionedTransaction(env.connection, tx, 'processed', { skipPreflight: true });
 
     await sleep(2000);
     const depositorKtokenAta = await getAssociatedTokenAddress(ktokenMint, depositor.publicKey);
@@ -190,7 +190,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     const shareData = await kamino.getStrategyShareData(strategy?.address!);
     const usdInvested = 2 * 20;
     console.log('shareData ', JSON.stringify(shareData));
-    const kTokenDecimals = (await getMint(env.provider.connection, ktokenMint)).decimals;
+    const kTokenDecimals = (await getMint(env.connection, ktokenMint)).decimals;
     console.log('expected', (shareData.price.toNumber() * depositorKtokenBalance) / 10 ** kTokenDecimals);
     assertFuzzyEq((shareData.price.toNumber() * depositorKtokenBalance) / 10 ** kTokenDecimals, usdInvested, slippage);
   });
@@ -229,10 +229,10 @@ describe('Leverage SDK kTokens swapper tests', function () {
 
     const slippage = 0.01;
     const usdhToDeposit = 40;
-    const depositDecimals = (await getMint(env.provider.connection, tokenAMint)).decimals;
+    const depositDecimals = (await getMint(env.connection, tokenAMint)).decimals;
 
     const expectedDebtTokenAtaBalance = await getExpectedTokenBalanceAfterBorrow(
-      env.provider.connection,
+      env.connection,
       tokenAMint,
       depositor.publicKey,
       new Decimal(0),
@@ -240,7 +240,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     );
 
     const swapper = await getTokenToKtokenSwapper(
-      env.provider.connection,
+      env.connection,
       kaminoMarket,
       kamino,
       depositor.publicKey,
@@ -266,14 +266,14 @@ describe('Leverage SDK kTokens swapper tests', function () {
     );
     await sleep(2000);
 
-    const tx = await buildVersionedTransaction(env.provider.connection, depositor.publicKey, swapIxns, [
+    const tx = await buildVersionedTransaction(env.connection, depositor.publicKey, swapIxns, [
       // ...lookupTableAddresses,
       swapperLookupTable,
     ]);
     tx.sign([depositor]);
     tx.sign([env.admin]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'processed', { skipPreflight: true });
+    await sendAndConfirmVersionedTransaction(env.connection, tx, 'processed', { skipPreflight: true });
 
     await sleep(2000);
     const depositorKtokenAta = await getAssociatedTokenAddress(ktokenMint, depositor.publicKey);
@@ -284,7 +284,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     const shareData = await kamino.getStrategyShareData(strategy?.address!);
     const usdInvested = 2 * 20;
     console.log('shareData ', JSON.stringify(shareData));
-    const kTokenDecimals = (await getMint(env.provider.connection, ktokenMint)).decimals;
+    const kTokenDecimals = (await getMint(env.connection, ktokenMint)).decimals;
     console.log('expected', (shareData.price.toNumber() * depositorKtokenBalance) / 10 ** kTokenDecimals);
     assertFuzzyEq((shareData.price.toNumber() * depositorKtokenBalance) / 10 ** kTokenDecimals, usdInvested, slippage);
   });
@@ -326,7 +326,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     const depositDecimals = 9;
 
     const expectedDebtTokenAtaBalance = await getExpectedTokenBalanceAfterBorrow(
-      env.provider.connection,
+      env.connection,
       tokenBMint,
       depositor.publicKey,
       new Decimal(0),
@@ -334,7 +334,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     );
 
     const swapper = await getTokenToKtokenSwapper(
-      env.provider.connection,
+      env.connection,
       kaminoMarket,
       kamino,
       depositor.publicKey,
@@ -360,14 +360,14 @@ describe('Leverage SDK kTokens swapper tests', function () {
     );
     await sleep(2000);
 
-    const tx = await buildVersionedTransaction(env.provider.connection, depositor.publicKey, swapIxns, [
+    const tx = await buildVersionedTransaction(env.connection, depositor.publicKey, swapIxns, [
       // ...lookupTableAddresses,
       swapperLookupTable,
     ]);
     tx.sign([depositor]);
     tx.sign([env.admin]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'processed', { skipPreflight: true });
+    await sendAndConfirmVersionedTransaction(env.connection, tx, 'processed', { skipPreflight: true });
 
     await sleep(2000);
     const depositorKtokenAta = await getAssociatedTokenAddress(ktokenMint, depositor.publicKey);
@@ -378,7 +378,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     const shareData = await kamino.getStrategyShareData(strategy?.address!);
     const usdInvested = 2 * 20;
     console.log('shareData ', JSON.stringify(shareData));
-    const kTokenDecimals = (await getMint(env.provider.connection, ktokenMint)).decimals;
+    const kTokenDecimals = (await getMint(env.connection, ktokenMint)).decimals;
     console.log('expected', (shareData.price.toNumber() * depositorKtokenBalance) / 10 ** kTokenDecimals);
     assertFuzzyEq((shareData.price.toNumber() * depositorKtokenBalance) / 10 ** kTokenDecimals, usdInvested, slippage);
   });
@@ -419,17 +419,17 @@ describe('Leverage SDK kTokens swapper tests', function () {
 
     const slippage = 0.01;
     const usdhToDeposit = 40;
-    const depositDecimals = (await getMint(env.provider.connection, tokenAMint)).decimals;
+    const depositDecimals = (await getMint(env.connection, tokenAMint)).decimals;
 
     const expectedDebtTokenAtaBalance = await getExpectedTokenBalanceAfterBorrow(
-      env.provider.connection,
+      env.connection,
       tokenAMint,
       depositor.publicKey,
       new Decimal(0),
       0
     );
     const swapper = await getTokenToKtokenSwapper(
-      env.provider.connection,
+      env.connection,
       kaminoMarket,
       kamino,
       depositor.publicKey,
@@ -455,14 +455,14 @@ describe('Leverage SDK kTokens swapper tests', function () {
     );
     await sleep(2000);
 
-    const tx = await buildVersionedTransaction(env.provider.connection, depositor.publicKey, swapIxns, [
+    const tx = await buildVersionedTransaction(env.connection, depositor.publicKey, swapIxns, [
       // ...lookupTableAddresses,
       swapperLookupTable,
     ]);
     tx.sign([depositor]);
     tx.sign([env.admin]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'processed', { skipPreflight: true });
+    await sendAndConfirmVersionedTransaction(env.connection, tx, 'processed', { skipPreflight: true });
 
     await sleep(2000);
     const depositorKtokenAta = await getAssociatedTokenAddress(ktokenMint, depositor.publicKey);
@@ -473,7 +473,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     const shareData = await kamino.getStrategyShareData(strategy?.address!);
     const usdInvested = 2 * 20;
     console.log('shareData ', JSON.stringify(shareData));
-    const kTokenDecimals = (await getMint(env.provider.connection, ktokenMint)).decimals;
+    const kTokenDecimals = (await getMint(env.connection, ktokenMint)).decimals;
     console.log('expected', (shareData.price.toNumber() * depositorKtokenBalance) / 10 ** kTokenDecimals);
     assertFuzzyEq((shareData.price.toNumber() * depositorKtokenBalance) / 10 ** kTokenDecimals, usdInvested, slippage);
   });
@@ -512,10 +512,10 @@ describe('Leverage SDK kTokens swapper tests', function () {
 
     const slippage = 0.01;
     const usdcToDeposit = 40;
-    const depositDecimals = (await getMint(env.provider.connection, tokenBMint)).decimals;
+    const depositDecimals = (await getMint(env.connection, tokenBMint)).decimals;
 
     const expectedDebtTokenAtaBalance = await getExpectedTokenBalanceAfterBorrow(
-      env.provider.connection,
+      env.connection,
       tokenBMint,
       depositor.publicKey,
       new Decimal(0),
@@ -523,7 +523,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     );
 
     const swapper = await getTokenToKtokenSwapper(
-      env.provider.connection,
+      env.connection,
       kaminoMarket,
       kamino,
       depositor.publicKey,
@@ -547,14 +547,14 @@ describe('Leverage SDK kTokens swapper tests', function () {
     );
     await sleep(2000);
 
-    const tx = await buildVersionedTransaction(env.provider.connection, depositor.publicKey, swapIxns, [
+    const tx = await buildVersionedTransaction(env.connection, depositor.publicKey, swapIxns, [
       // ...lookupTableAddresses,
       swapperLookupTable,
     ]);
     tx.sign([depositor]);
     tx.sign([env.admin]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'processed', { skipPreflight: true });
+    await sendAndConfirmVersionedTransaction(env.connection, tx, 'processed', { skipPreflight: true });
 
     await sleep(2000);
     const depositorKtokenAta = await getAssociatedTokenAddress(ktokenMint, depositor.publicKey);
@@ -565,7 +565,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     const shareData = await kamino.getStrategyShareData(strategy?.address!);
     const usdInvested = 2 * 20;
     console.log('shareData ', JSON.stringify(shareData));
-    const kTokenDecimals = (await getMint(env.provider.connection, ktokenMint)).decimals;
+    const kTokenDecimals = (await getMint(env.connection, ktokenMint)).decimals;
     console.log('expected', (shareData.price.toNumber() * depositorKtokenBalance) / 10 ** kTokenDecimals);
     assertFuzzyEq((shareData.price.toNumber() * depositorKtokenBalance) / 10 ** kTokenDecimals, usdInvested, slippage);
   });
@@ -595,7 +595,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
 
     const slippage = 0.01;
     const ktokenToWithdraw = 10000;
-    const kTokenDecimals = (await getMint(env.provider.connection, ktokenMint)).decimals;
+    const kTokenDecimals = (await getMint(env.connection, ktokenMint)).decimals;
 
     const depositor = await newUser(env, kaminoMarket, [[ktokenSymbol, new Decimal(ktokenToWithdraw)]], kamino);
 
@@ -616,7 +616,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     );
     await sleep(2000);
 
-    const tx = await buildVersionedTransaction(env.provider.connection, depositor.publicKey, swapIxns, [
+    const tx = await buildVersionedTransaction(env.connection, depositor.publicKey, swapIxns, [
       // ...lookupTableAddresses,
       swapperLookupTable,
     ]);
@@ -625,11 +625,11 @@ describe('Leverage SDK kTokens swapper tests', function () {
     const depositorTokenAAta = await getAssociatedTokenAddress(tokenAMint, depositor.publicKey);
     const depositorTokenABalanceBefore = await getTokenAccountBalance(env.provider, depositorTokenAAta);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'processed', { skipPreflight: true });
+    await sendAndConfirmVersionedTransaction(env.connection, tx, 'processed', { skipPreflight: true });
 
     await sleep(2000);
     const depositorTokenABalanceAfter = await getTokenAccountBalance(env.provider, depositorTokenAAta);
-    const tokenADecimals = (await getMint(env.provider.connection, tokenAMint)).decimals;
+    const tokenADecimals = (await getMint(env.connection, tokenAMint)).decimals;
     const tokenADiff = (depositorTokenABalanceAfter - depositorTokenABalanceBefore) / 10 ** tokenADecimals;
     console.log('tokenA balance diff: ', tokenADiff);
 
@@ -673,7 +673,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
 
     const slippage = 0.01;
     const ktokenToWithdraw = 10000;
-    const kTokenDecimals = (await getMint(env.provider.connection, ktokenMint)).decimals;
+    const kTokenDecimals = (await getMint(env.connection, ktokenMint)).decimals;
     const depositor = await newUser(env, kaminoMarket, [[ktokenSymbol, new Decimal(ktokenToWithdraw)]], kamino);
 
     const swapper = await getKtokenToTokenSwapper(
@@ -693,7 +693,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     );
     await sleep(2000);
 
-    const tx = await buildVersionedTransaction(env.provider.connection, depositor.publicKey, swapIxns, [
+    const tx = await buildVersionedTransaction(env.connection, depositor.publicKey, swapIxns, [
       // ...lookupTableAddresses,
       swapperLookupTable,
     ]);
@@ -702,11 +702,11 @@ describe('Leverage SDK kTokens swapper tests', function () {
     const depositorTokenBAta = await getAssociatedTokenAddress(tokenBMint, depositor.publicKey);
     const depositorTokenBBalanceBefore = await getTokenAccountBalance(env.provider, depositorTokenBAta);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'processed', { skipPreflight: true });
+    await sendAndConfirmVersionedTransaction(env.connection, tx, 'processed', { skipPreflight: true });
 
     await sleep(2000);
     const depositorTokenBBalanceAfter = await getTokenAccountBalance(env.provider, depositorTokenBAta);
-    const tokenBDecimals = (await getMint(env.provider.connection, tokenBMint)).decimals;
+    const tokenBDecimals = (await getMint(env.connection, tokenBMint)).decimals;
     const tokenBDiff = (depositorTokenBBalanceAfter - depositorTokenBBalanceBefore) / 10 ** tokenBDecimals;
     console.log('tokenA balance diff: ', tokenBDiff);
 
@@ -750,7 +750,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
 
     const slippage = 0.001;
     const ktokenToWithdraw = 10000;
-    const kTokenDecimals = (await getMint(env.provider.connection, ktokenMint)).decimals;
+    const kTokenDecimals = (await getMint(env.connection, ktokenMint)).decimals;
 
     const depositor = await newUser(env, kaminoMarket, [[ktokenSymbol, new Decimal(ktokenToWithdraw)]], kamino);
 
@@ -771,7 +771,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     );
     await sleep(2000);
 
-    const tx = await buildVersionedTransaction(env.provider.connection, depositor.publicKey, swapIxns, [
+    const tx = await buildVersionedTransaction(env.connection, depositor.publicKey, swapIxns, [
       // ...lookupTableAddresses,
       swapperLookupTable,
     ]);
@@ -780,11 +780,11 @@ describe('Leverage SDK kTokens swapper tests', function () {
     const depositorTokenAAta = await getAssociatedTokenAddress(tokenAMint, depositor.publicKey);
     const depositorTokenABalanceBefore = await getTokenAccountBalance(env.provider, depositorTokenAAta);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'processed', { skipPreflight: true });
+    await sendAndConfirmVersionedTransaction(env.connection, tx, 'processed', { skipPreflight: true });
 
     await sleep(2000);
     const depositorTokenABalanceAfter = await getTokenAccountBalance(env.provider, depositorTokenAAta);
-    const tokenADecimals = (await getMint(env.provider.connection, tokenAMint)).decimals;
+    const tokenADecimals = (await getMint(env.connection, tokenAMint)).decimals;
     const tokenADiff = (depositorTokenABalanceAfter - depositorTokenABalanceBefore) / 10 ** tokenADecimals;
     console.log('tokenA balance diff: ', tokenADiff);
 
@@ -828,7 +828,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
 
     const slippage = 0.001;
     const ktokenToWithdraw = 10000;
-    const kTokenDecimals = (await getMint(env.provider.connection, ktokenMint)).decimals;
+    const kTokenDecimals = (await getMint(env.connection, ktokenMint)).decimals;
     const depositor = await newUser(env, kaminoMarket, [[ktokenSymbol, new Decimal(ktokenToWithdraw)]], kamino);
 
     const swapper = await getKtokenToTokenSwapper(
@@ -848,7 +848,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     );
     await sleep(2000);
 
-    const tx = await buildVersionedTransaction(env.provider.connection, depositor.publicKey, swapIxns, [
+    const tx = await buildVersionedTransaction(env.connection, depositor.publicKey, swapIxns, [
       // ...lookupTableAddresses,
       swapperLookupTable,
     ]);
@@ -857,11 +857,11 @@ describe('Leverage SDK kTokens swapper tests', function () {
     const depositorTokenBAta = await getAssociatedTokenAddress(tokenBMint, depositor.publicKey);
     const depositorTokenBBalanceBefore = await getTokenAccountBalance(env.provider, depositorTokenBAta);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'processed', { skipPreflight: true });
+    await sendAndConfirmVersionedTransaction(env.connection, tx, 'processed', { skipPreflight: true });
 
     await sleep(2000);
     const depositorTokenBBalanceAfter = await getTokenAccountBalance(env.provider, depositorTokenBAta);
-    const tokenBDecimals = (await getMint(env.provider.connection, tokenBMint)).decimals;
+    const tokenBDecimals = (await getMint(env.connection, tokenBMint)).decimals;
     const tokenBDiff = (depositorTokenBBalanceAfter - depositorTokenBBalanceBefore) / 10 ** tokenBDecimals;
     console.log('tokenA balance diff: ', tokenBDiff);
 
@@ -907,7 +907,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
 
     const slippage = 0.0001;
     const ktokenToWithdraw = 10000;
-    const kTokenDecimals = (await getMint(env.provider.connection, ktokenMint)).decimals;
+    const kTokenDecimals = (await getMint(env.connection, ktokenMint)).decimals;
 
     const depositor = await newUser(env, kaminoMarket, [[ktokenSymbol, new Decimal(ktokenToWithdraw)]], kamino);
 
@@ -928,7 +928,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     );
     await sleep(2000);
 
-    const tx = await buildVersionedTransaction(env.provider.connection, depositor.publicKey, swapIxns, [
+    const tx = await buildVersionedTransaction(env.connection, depositor.publicKey, swapIxns, [
       // ...lookupTableAddresses,
       swapperLookupTable,
     ]);
@@ -937,11 +937,11 @@ describe('Leverage SDK kTokens swapper tests', function () {
     const depositorTokenAAta = await getAssociatedTokenAddress(tokenAMint, depositor.publicKey);
     const depositorTokenABalanceBefore = await getTokenAccountBalance(env.provider, depositorTokenAAta);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'processed', { skipPreflight: true });
+    await sendAndConfirmVersionedTransaction(env.connection, tx, 'processed', { skipPreflight: true });
 
     await sleep(2000);
     const depositorTokenABalanceAfter = await getTokenAccountBalance(env.provider, depositorTokenAAta);
-    const tokenADecimals = (await getMint(env.provider.connection, tokenAMint)).decimals;
+    const tokenADecimals = (await getMint(env.connection, tokenAMint)).decimals;
     const tokenADiff = (depositorTokenABalanceAfter - depositorTokenABalanceBefore) / 10 ** tokenADecimals;
     console.log('tokenA balance diff: ', tokenADiff);
 
@@ -987,7 +987,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
 
     const slippage = 0.0001;
     const ktokenToWithdraw = 10000;
-    const kTokenDecimals = (await getMint(env.provider.connection, ktokenMint)).decimals;
+    const kTokenDecimals = (await getMint(env.connection, ktokenMint)).decimals;
 
     const depositor = await newUser(env, kaminoMarket, [[ktokenSymbol, new Decimal(ktokenToWithdraw)]], kamino);
 
@@ -1008,7 +1008,7 @@ describe('Leverage SDK kTokens swapper tests', function () {
     );
     await sleep(2000);
 
-    const tx = await buildVersionedTransaction(env.provider.connection, depositor.publicKey, swapIxns, [
+    const tx = await buildVersionedTransaction(env.connection, depositor.publicKey, swapIxns, [
       // ...lookupTableAddresses,
       swapperLookupTable,
     ]);
@@ -1017,11 +1017,11 @@ describe('Leverage SDK kTokens swapper tests', function () {
     const depositorTokenBAta = await getAssociatedTokenAddress(tokenBMint, depositor.publicKey);
     const depositorTokenBBalanceBefore = await getTokenAccountBalance(env.provider, depositorTokenBAta);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'processed', { skipPreflight: true });
+    await sendAndConfirmVersionedTransaction(env.connection, tx, 'processed', { skipPreflight: true });
 
     await sleep(2000);
     const depositorTokenBBalanceAfter = await getTokenAccountBalance(env.provider, depositorTokenBAta);
-    const tokenBDecimals = (await getMint(env.provider.connection, tokenBMint)).decimals;
+    const tokenBDecimals = (await getMint(env.connection, tokenBMint)).decimals;
     const tokenBDiff = (depositorTokenBBalanceAfter - depositorTokenBBalanceBefore) / 10 ** tokenBDecimals;
     console.log('tokenA balance diff: ', tokenBDiff);
 

@@ -21,7 +21,6 @@ export interface FlashRepayReserveLiquidityAccounts {
   referrerTokenState: PublicKey
   referrerAccount: PublicKey
   sysvarInfo: PublicKey
-  /** flash loans on token_22 tokens are currently purposefully disabled */
   tokenProgram: PublicKey
 }
 
@@ -51,7 +50,7 @@ export function flashRepayReserveLiquidity(
     {
       pubkey: accounts.reserveLiquidityMint,
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     },
     {
       pubkey: accounts.reserveDestinationLiquidity,

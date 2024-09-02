@@ -59,7 +59,7 @@ describe('Referrals Tests', function () {
     await sleep(2000);
 
     const referrer = Keypair.generate();
-    await env.provider.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
+    await env.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
 
     const token = 'USDH';
     await mintTo(env, usdh, usdhAta, 100000000000);
@@ -67,7 +67,7 @@ describe('Referrals Tests', function () {
     const [_createMarketSig, lendingMarket] = await createMarket(env);
     await sleep(2000);
     await updateMarketReferralFeeBps(env, lendingMarket.publicKey, 2000);
-    const lendingMarketState = await LendingMarket.fetch(env.provider.connection, lendingMarket.publicKey);
+    const lendingMarketState = await LendingMarket.fetch(env.connection, lendingMarket.publicKey);
     console.log('updateMarketReferralFeeBps ' + lendingMarketState?.referralFeeBps);
     const [_createReserveSig, usdhReserve] = await createReserve(env, lendingMarket.publicKey, usdh);
     await sleep(2000);
@@ -77,7 +77,7 @@ describe('Referrals Tests', function () {
     await sleep(2000);
 
     const kaminoMarket = await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -170,7 +170,7 @@ describe('Referrals Tests', function () {
     await sleep(2000);
 
     const referrer = Keypair.generate();
-    await env.provider.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
+    await env.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
 
     const token = 'USDH';
     await mintTo(env, usdh, usdhAta, 100000000000);
@@ -178,7 +178,7 @@ describe('Referrals Tests', function () {
     const [_createMarketSig, lendingMarket] = await createMarket(env);
     await sleep(2000);
     await updateMarketReferralFeeBps(env, lendingMarket.publicKey, 2000);
-    const lendingMarketState = await LendingMarket.fetch(env.provider.connection, lendingMarket.publicKey);
+    const lendingMarketState = await LendingMarket.fetch(env.connection, lendingMarket.publicKey);
     console.log('updateMarketReferralFeeBps ' + lendingMarketState?.referralFeeBps);
     const [_createReserveSig, usdhReserve] = await createReserve(env, lendingMarket.publicKey, usdh);
     await sleep(2000);
@@ -188,7 +188,7 @@ describe('Referrals Tests', function () {
     await sleep(2000);
 
     const kaminoMarket = (await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -315,10 +315,10 @@ describe('Referrals Tests', function () {
     await sleep(2000);
 
     const referrer = Keypair.generate();
-    await env.provider.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
+    await env.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
 
     await updateMarketReferralFeeBps(env, lendingMarket.publicKey, 2000);
-    const lendingMarketState = await LendingMarket.fetch(env.provider.connection, lendingMarket.publicKey);
+    const lendingMarketState = await LendingMarket.fetch(env.connection, lendingMarket.publicKey);
     console.log('updateMarketReferralFeeBps ' + lendingMarketState?.referralFeeBps);
     await sleep(2000);
 
@@ -330,7 +330,7 @@ describe('Referrals Tests', function () {
     await sleep(2000);
 
     const kaminoMarket = (await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -357,7 +357,7 @@ describe('Referrals Tests', function () {
     await sleep(2000);
 
     const depositor = Keypair.generate();
-    await env.provider.connection.requestAirdrop(depositor.publicKey, 10000000000);
+    await env.connection.requestAirdrop(depositor.publicKey, 10000000000);
     await sleep(2000);
 
     const kaminoDepositAction = await KaminoAction.buildDepositTxns(
@@ -453,10 +453,10 @@ describe('Referrals Tests', function () {
     await sleep(2000);
 
     const referrer = Keypair.generate();
-    await env.provider.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
+    await env.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
 
     await updateMarketReferralFeeBps(env, lendingMarket.publicKey, 2000);
-    const lendingMarketState = await LendingMarket.fetch(env.provider.connection, lendingMarket.publicKey);
+    const lendingMarketState = await LendingMarket.fetch(env.connection, lendingMarket.publicKey);
     console.log('updateMarketReferralFeeBps ' + lendingMarketState?.referralFeeBps);
     await sleep(2000);
 
@@ -468,7 +468,7 @@ describe('Referrals Tests', function () {
     await sleep(2000);
 
     const kaminoMarket = (await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -478,6 +478,7 @@ describe('Referrals Tests', function () {
     await executeInitUserMetadataTx(kaminoMarket!, referrer);
     await sleep(2000);
 
+    console.log('DepositAction');
     const depositAction = await KaminoAction.buildDepositTxns(
       kaminoMarket!,
       '10000000000',
@@ -491,25 +492,25 @@ describe('Referrals Tests', function () {
       referrer.publicKey
     );
 
+    console.log('SendTransactionsFromAction');
     await sendTransactionsFromAction(env, depositAction, env.admin);
     await sleep(2000);
 
-    const depositor = Keypair.generate();
-    await env.provider.connection.requestAirdrop(depositor.publicKey, 10000000000);
-    await sleep(2000);
-
+    console.log('KaminoDepositAction');
     const kaminoDepositAction = await KaminoAction.buildDepositTxns(
       kaminoMarket!,
       '5000000000',
       NATIVE_MINT,
-      depositor.publicKey,
+      env.admin.publicKey,
       new VanillaObligation(PROGRAM_ID)
     );
 
-    await sendTransactionsFromAction(env, kaminoDepositAction, depositor, [depositor]);
+    console.log('SendTransactionsFromAction');
+    await sendTransactionsFromAction(env, kaminoDepositAction, env.admin, [env.admin]);
 
     await sleep(2000);
 
+    console.log('BorrowAction');
     const borrowAction = await KaminoAction.buildBorrowTxns(
       kaminoMarket!,
       borrowAmount.toString(),
@@ -523,7 +524,8 @@ describe('Referrals Tests', function () {
       referrer.publicKey
     );
 
-    await sendTransactionsFromAction(env, borrowAction, depositor);
+    console.log('SendTransactionsFromAction');
+    await sendTransactionsFromAction(env, borrowAction, env.admin);
 
     const [, userMetadata] = await kaminoMarket!.getUserMetadata(env.admin.publicKey)!;
     console.log('ref link', userMetadata!.referrer.toString());
@@ -608,7 +610,7 @@ describe('Referrals Tests', function () {
     await sleep(2000);
 
     const referrer = Keypair.generate();
-    await env.provider.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
+    await env.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
 
     const token = 'USDH';
     await mintTo(env, usdh, usdhAta, 100000000000);
@@ -616,7 +618,7 @@ describe('Referrals Tests', function () {
     const [_createMarketSig, lendingMarket] = await createMarket(env);
     await sleep(2000);
     await updateMarketReferralFeeBps(env, lendingMarket.publicKey, 2000);
-    const lendingMarketState = await LendingMarket.fetch(env.provider.connection, lendingMarket.publicKey);
+    const lendingMarketState = await LendingMarket.fetch(env.connection, lendingMarket.publicKey);
     console.log('updateMarketReferralFeeBps ' + lendingMarketState?.referralFeeBps);
     const [_createReserveSig, usdhReserve] = await createReserve(env, lendingMarket.publicKey, usdh);
     await sleep(2000);
@@ -626,7 +628,7 @@ describe('Referrals Tests', function () {
     await sleep(2000);
 
     const kaminoMarket = (await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -744,7 +746,7 @@ describe('Referrals Tests', function () {
     await sleep(2000);
 
     const referrer = Keypair.generate();
-    await env.provider.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
+    await env.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
 
     const token = 'USDH';
     await mintTo(env, usdh, usdhAta, 100000000000);
@@ -752,7 +754,7 @@ describe('Referrals Tests', function () {
     const [_createMarketSig, lendingMarket] = await createMarket(env);
     await sleep(2000);
     await updateMarketReferralFeeBps(env, lendingMarket.publicKey, 2000);
-    const lendingMarketState = await LendingMarket.fetch(env.provider.connection, lendingMarket.publicKey);
+    const lendingMarketState = await LendingMarket.fetch(env.connection, lendingMarket.publicKey);
     console.log('updateMarketReferralFeeBps ' + lendingMarketState?.referralFeeBps);
     const [_createReserveSig, usdhReserve] = await createReserve(env, lendingMarket.publicKey, usdh);
     await sleep(2000);
@@ -762,7 +764,7 @@ describe('Referrals Tests', function () {
     await sleep(2000);
 
     const kaminoMarket = (await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -790,7 +792,7 @@ describe('Referrals Tests', function () {
       new VanillaObligation(PROGRAM_ID)
     );
 
-    const tx = await buildVersionedTransaction(env.provider.connection, env.admin.publicKey, [
+    const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, [
       ...depositAndBorrowAction.setupIxs,
       depositAndBorrowAction.lendingIxs[0],
       ...depositAndBorrowAction.inBetweenIxs,
@@ -803,7 +805,7 @@ describe('Referrals Tests', function () {
     console.log('LendingIxns:', depositAndBorrowAction.lendingIxsLabels);
     console.log('CleanupIxns:', depositAndBorrowAction.cleanupIxsLabels);
 
-    await buildAndSendTxnWithLogs(env.provider.connection, tx, env.admin, [env.admin]);
+    await buildAndSendTxnWithLogs(env.connection, tx, env.admin, [env.admin]);
     await sleep(2000);
 
     const obligation = (await kaminoMarket!.getObligationByWallet(
@@ -890,10 +892,10 @@ describe('Referrals Tests', function () {
     await sleep(2000);
 
     const referrer = Keypair.generate();
-    await env.provider.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
+    await env.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
 
     await updateMarketReferralFeeBps(env, lendingMarket.publicKey, 2000);
-    const lendingMarketState = await LendingMarket.fetch(env.provider.connection, lendingMarket.publicKey);
+    const lendingMarketState = await LendingMarket.fetch(env.connection, lendingMarket.publicKey);
     console.log('updateMarketReferralFeeBps ' + lendingMarketState?.referralFeeBps);
     await sleep(2000);
 
@@ -905,7 +907,7 @@ describe('Referrals Tests', function () {
     await sleep(2000);
 
     const kaminoMarket = (await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -933,7 +935,7 @@ describe('Referrals Tests', function () {
     await sendTransactionsFromAction(env, depositAction, env.admin);
     await sleep(2000);
 
-    await env.provider.connection.requestAirdrop(env.admin.publicKey, 10000000000);
+    await env.connection.requestAirdrop(env.admin.publicKey, 10000000000);
     await sleep(2000);
 
     const kaminoDepositAction = await KaminoAction.buildDepositTxns(
@@ -1143,7 +1145,7 @@ describe('Referrals Tests', function () {
     }
     await sleep(2000);
 
-    await env.provider.connection.requestAirdrop(env.admin.publicKey, 1000000000000);
+    await env.connection.requestAirdrop(env.admin.publicKey, 1000000000000);
 
     for (let index = 1; index < depositSymbols.length; index++) {
       const [_, ata] = await createAta(env, env.admin.publicKey, depositMints[index]);
@@ -1154,10 +1156,10 @@ describe('Referrals Tests', function () {
     await sleep(2000);
 
     const referrer = Keypair.generate();
-    await env.provider.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
+    await env.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
 
     await updateMarketReferralFeeBps(env, lendingMarket.publicKey, 2000);
-    const lendingMarketState = await LendingMarket.fetch(env.provider.connection, lendingMarket.publicKey);
+    const lendingMarketState = await LendingMarket.fetch(env.connection, lendingMarket.publicKey);
     console.log('updateMarketReferralFeeBps ' + lendingMarketState?.referralFeeBps);
     await sleep(2000);
 
@@ -1175,7 +1177,7 @@ describe('Referrals Tests', function () {
     }
 
     const kaminoMarket = (await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -1205,15 +1207,12 @@ describe('Referrals Tests', function () {
     );
     await sleep(2000);
 
-    const tx = await buildVersionedTransaction(
-      env.provider.connection,
-      referrer.publicKey,
-      initAllReferrerTokenStatesIxns,
-      [initAllReferrerTokenStatesLookupTable]
-    );
+    const tx = await buildVersionedTransaction(env.connection, referrer.publicKey, initAllReferrerTokenStatesIxns, [
+      initAllReferrerTokenStatesLookupTable,
+    ]);
     tx.sign([referrer]);
 
-    await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'confirmed');
+    await sendAndConfirmVersionedTransaction(env.connection, tx, 'confirmed');
 
     await sleep(2000);
     // deposit from user to depoit reserves
@@ -1232,7 +1231,7 @@ describe('Referrals Tests', function () {
 
     // Deposit from different depositor to the borrow reserves
     const depositor = Keypair.generate();
-    await env.provider.connection.requestAirdrop(depositor.publicKey, 10000000000);
+    await env.connection.requestAirdrop(depositor.publicKey, 10000000000);
     await sleep(1000);
     for (let index = 1; index < borrowSymbols.length; index++) {
       const [_, ata] = await createAta(env, depositor.publicKey, borrowMints[index]);
@@ -1278,12 +1277,10 @@ describe('Referrals Tests', function () {
       );
       await sleep(2000);
 
-      const tx = await buildVersionedTransaction(env.provider.connection, env.admin.publicKey, borrowIxns, [
-        borrowLookupTable,
-      ]);
+      const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, borrowIxns, [borrowLookupTable]);
       tx.sign([env.admin]);
 
-      await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'confirmed');
+      await sendAndConfirmVersionedTransaction(env.connection, tx, 'confirmed');
 
       await sleep(2000);
 
@@ -1387,7 +1384,7 @@ describe('Referrals Tests', function () {
     await sleep(2000);
 
     const referrer = Keypair.generate();
-    await env.provider.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
+    await env.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
     await sleep(2000);
 
     await updateMarketReferralFeeBps(env, kaminoMarket.getAddress(), 2000);
@@ -1504,7 +1501,7 @@ describe('Referrals Tests', function () {
     await sleep(2000);
 
     const referrer = Keypair.generate();
-    await env.provider.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
+    await env.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
     await sleep(2000);
 
     const shortUrl = generateShortUrl();
@@ -1512,7 +1509,7 @@ describe('Referrals Tests', function () {
     const [, lendingMarket] = await createMarket(env);
 
     const kaminoMarket = (await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -1522,34 +1519,34 @@ describe('Referrals Tests', function () {
     await executeInitUserMetadataTx(kaminoMarket!, referrer);
     await sleep(2000);
 
-    const _initSig = await createReferrerStateAndShortUrl({ connection: env.provider.connection, referrer, shortUrl });
+    const _initSig = await createReferrerStateAndShortUrl({ connection: env.connection, referrer, shortUrl });
     await sleep(2000);
 
-    const urlAvailable = await isShortUrlAvailable(env.provider.connection, shortUrl);
+    const urlAvailable = await isShortUrlAvailable(env.connection, shortUrl);
     assert(urlAvailable === false);
 
-    const [, onChainShortUrl] = await getReferrerShortUrl(env.provider.connection, referrer.publicKey);
+    const [, onChainShortUrl] = await getReferrerShortUrl(env.connection, referrer.publicKey);
     assert(onChainShortUrl === shortUrl);
 
-    const onChainReferrerForShortUrl = await getReferrerForShortUrl(env.provider.connection, shortUrl);
+    const onChainReferrerForShortUrl = await getReferrerForShortUrl(env.connection, shortUrl);
     assert(onChainReferrerForShortUrl.toString() === referrer.publicKey.toString());
 
     const newShortUrl = generateShortUrl();
 
     const _updateSig = await updateReferrerStateAndShortUrl({
-      connection: env.provider.connection,
+      connection: env.connection,
       referrer,
       newShortUrl,
     });
     await sleep(2000);
 
-    const urlAvailable2 = await isShortUrlAvailable(env.provider.connection, shortUrl);
+    const urlAvailable2 = await isShortUrlAvailable(env.connection, shortUrl);
     assert(urlAvailable2 === true);
 
-    const [, newOnChainShortUrl] = await getReferrerShortUrl(env.provider.connection, referrer.publicKey);
+    const [, newOnChainShortUrl] = await getReferrerShortUrl(env.connection, referrer.publicKey);
     assert(newOnChainShortUrl === newShortUrl);
 
-    const onChainReferrerForNewShortUrl = await getReferrerForShortUrl(env.provider.connection, newShortUrl);
+    const onChainReferrerForNewShortUrl = await getReferrerForShortUrl(env.connection, newShortUrl);
     assert(onChainReferrerForNewShortUrl.toString() === referrer.publicKey.toString());
   });
 
@@ -1565,10 +1562,10 @@ describe('Referrals Tests', function () {
     } = await createMarketWithTwoReserves(collToken, debtToken, false);
 
     const referrer = Keypair.generate();
-    await env.provider.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
+    await env.connection.requestAirdrop(referrer.publicKey, 2 * LAMPORTS_PER_SOL);
 
     const depositorOnly = Keypair.generate();
-    await env.provider.connection.requestAirdrop(depositorOnly.publicKey, 2 * LAMPORTS_PER_SOL);
+    await env.connection.requestAirdrop(depositorOnly.publicKey, 2 * LAMPORTS_PER_SOL);
     const [_signatureAta, secondMintDepositorAta] = await createAta(env, depositorOnly.publicKey, debtMint);
     await sleep(2000);
     await mintTo(env, debtMint, secondMintDepositorAta, 100000000000);
@@ -1594,7 +1591,7 @@ describe('Referrals Tests', function () {
 
     for (let i = 0; i < 3; i++) {
       const borrower = Keypair.generate();
-      await env.provider.connection.requestAirdrop(borrower.publicKey, 2 * LAMPORTS_PER_SOL);
+      await env.connection.requestAirdrop(borrower.publicKey, 2 * LAMPORTS_PER_SOL);
       const [_signatureAta, firstMintBorrowerAta] = await createAta(env, borrower.publicKey, collMint);
       await sleep(2000);
       await mintTo(env, collMint, firstMintBorrowerAta, 100000000000);
@@ -1632,7 +1629,7 @@ describe('Referrals Tests', function () {
       await sendTransactionsFromAction(env, borrowAction, borrower, [borrower]);
       await sleep(2000);
 
-      const amountUsersReferred = await getTotalUsersReferred(env.provider.connection, referrer.publicKey);
+      const amountUsersReferred = await getTotalUsersReferred(env.connection, referrer.publicKey);
       assert(amountUsersReferred === i + 1);
     }
   });

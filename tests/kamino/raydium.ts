@@ -30,7 +30,7 @@ export async function initializeRaydiumPool(
     config = configAcc;
   } else {
     const [configPk] = await getAmmConfigAddress(0, RAYDIUM_PROGRAM_ID);
-    if (!(await accountExist(env.provider.connection, configPk))) {
+    if (!(await accountExist(env.connection, configPk))) {
       await createAmmConfig(env, configPk, 0, tickSize, 100, 200, 400);
     }
 
@@ -47,20 +47,17 @@ export async function initializeRaydiumPool(
       const createObvIx = SystemProgram.createAccount({
         fromPubkey: env.admin.publicKey,
         newAccountPubkey: observationPk.publicKey,
-        lamports: await env.provider.connection.getMinimumBalanceForRentExemption(OBSERVATION_STATE_LEN),
+        lamports: await env.connection.getMinimumBalanceForRentExemption(OBSERVATION_STATE_LEN),
         space: OBSERVATION_STATE_LEN,
         programId: RAYDIUM_PROGRAM_ID,
       });
 
       const tx = new Transaction();
-      const { blockhash } = await env.provider.connection.getLatestBlockhash();
+      const { blockhash } = await env.connection.getLatestBlockhash();
       tx.recentBlockhash = blockhash;
       tx.add(createObvIx);
 
-      const txHash = await sendTransactionWithLogs(env.provider.connection, tx, env.admin.publicKey, [
-        env.admin,
-        observationPk,
-      ]);
+      const txHash = await sendTransactionWithLogs(env.connection, tx, env.admin.publicKey, [env.admin, observationPk]);
       console.log('Initialize Observer:', txHash);
     }
   }
@@ -99,7 +96,7 @@ export async function initializeRaydiumPool(
     const initializeTx = RaydiumInstructions.createPool(createPoolArgs, createPoolAccounts);
     tx.add(initializeTx);
 
-    const sig = await sendTransactionWithLogs(env.provider.connection, tx, env.admin.publicKey, [env.admin]);
+    const sig = await sendTransactionWithLogs(env.connection, tx, env.admin.publicKey, [env.admin]);
     console.log('Initialize Raydium pool: ', sig);
   }
 
@@ -149,12 +146,12 @@ async function createAmmConfig(
 
   const tx = new Transaction();
   const initializeTx = RaydiumInstructions.createAmmConfig(initConfigArgs, initConfigAccounts);
-  const { blockhash } = await env.provider.connection.getLatestBlockhash();
+  const { blockhash } = await env.connection.getLatestBlockhash();
   tx.recentBlockhash = blockhash;
   tx.feePayer = env.admin.publicKey;
   tx.add(initializeTx);
 
-  const sig = await sendTransactionWithLogs(env.provider.connection, tx, env.admin.publicKey, [env.admin]);
+  const sig = await sendTransactionWithLogs(env.connection, tx, env.admin.publicKey, [env.admin]);
   console.log('InitializeConfig:', sig);
 }
 

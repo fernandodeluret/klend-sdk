@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import { Command } from 'commander';
 import {
   ComputeBudgetProgram,
+  Connection,
   Keypair,
   PublicKey,
   Signer,
@@ -73,7 +74,7 @@ async function main() {
 
       const multisigPk = multisig ? new PublicKey(multisig) : PublicKey.default;
 
-      const kaminoManager = new KaminoManager(env.provider.connection, env.kLendProgramId, env.kVaultProgramId);
+      const kaminoManager = new KaminoManager(env.connection, env.kLendProgramId, env.kVaultProgramId);
 
       const { market: marketKp, ixns: createMarketIxns } = await kaminoManager.createMarketIxs({
         admin: mode === 'multisig' ? multisigPk : env.payer.publicKey,
@@ -107,7 +108,7 @@ async function main() {
       }
 
       const multisigPk = multisig ? new PublicKey(multisig) : PublicKey.default;
-      const kaminoManager = new KaminoManager(env.provider.connection, env.kLendProgramId, env.kVaultProgramId);
+      const kaminoManager = new KaminoManager(env.connection, env.kLendProgramId, env.kVaultProgramId);
 
       const reserveConfigFromFile = JSON.parse(fs.readFileSync(reserveConfigPath, 'utf8'));
 
@@ -148,13 +149,13 @@ async function main() {
     .action(async ({ reserve, reserveConfigPath, mode, updateEntireConfig, staging, multisig }) => {
       const env = initializeClient(mode === 'multisig', staging);
       const reserveAddress = new PublicKey(reserve);
-      const reserveState = await Reserve.fetch(env.provider.connection, reserveAddress, env.kLendProgramId);
+      const reserveState = await Reserve.fetch(env.connection, reserveAddress, env.kLendProgramId);
       if (!reserveState) {
         throw new Error('Reserve not found');
       }
 
       const marketAddress = reserveState.lendingMarket;
-      const marketState = await LendingMarket.fetch(env.provider.connection, marketAddress, env.kLendProgramId);
+      const marketState = await LendingMarket.fetch(env.connection, marketAddress, env.kLendProgramId);
       if (!marketState) {
         throw new Error('Market not found');
       }
@@ -167,7 +168,7 @@ async function main() {
         throw new Error('If using multisig mode, multisig is required');
       }
 
-      const kaminoManager = new KaminoManager(env.provider.connection, env.kLendProgramId, env.kVaultProgramId);
+      const kaminoManager = new KaminoManager(env.connection, env.kLendProgramId, env.kVaultProgramId);
 
       const reserveConfigFromFile = JSON.parse(fs.readFileSync(reserveConfigPath, 'utf8'));
 
@@ -193,7 +194,7 @@ async function main() {
     .action(async ({ reserve, staging }) => {
       const env = initializeClient(false, staging);
       const reserveAddress = new PublicKey(reserve);
-      const reserveState = await Reserve.fetch(env.provider.connection, reserveAddress, env.kLendProgramId);
+      const reserveState = await Reserve.fetch(env.connection, reserveAddress, env.kLendProgramId);
       if (!reserveState) {
         throw new Error('Reserve not found');
       }
@@ -229,7 +230,7 @@ async function main() {
       }
 
       const multisigPk = multisig ? new PublicKey(multisig) : PublicKey.default;
-      const kaminoManager = new KaminoManager(env.provider.connection, env.kLendProgramId, env.kVaultProgramId);
+      const kaminoManager = new KaminoManager(env.connection, env.kLendProgramId, env.kVaultProgramId);
 
       const kaminoVaultConfig = new KaminoVaultConfig({
         admin: mode === 'multisig' ? multisigPk : env.payer.publicKey,
@@ -269,8 +270,8 @@ async function main() {
         throw new Error('If using multisig mode, multisig is required');
       }
 
-      const kaminoManager = new KaminoManager(env.provider.connection, env.kLendProgramId, env.kVaultProgramId);
-      const reserveState = await Reserve.fetch(env.provider.connection, reserveAddress, env.kLendProgramId);
+      const kaminoManager = new KaminoManager(env.connection, env.kLendProgramId, env.kVaultProgramId);
+      const reserveState = await Reserve.fetch(env.connection, reserveAddress, env.kLendProgramId);
       if (!reserveState) {
         throw new Error('Reserve not found');
       }
@@ -297,7 +298,7 @@ async function main() {
 
   commands.command('get-oracle-mappings').action(async () => {
     const env = initializeClient(false, false);
-    const kaminoManager = new KaminoManager(env.provider.connection, env.kLendProgramId, env.kVaultProgramId);
+    const kaminoManager = new KaminoManager(env.connection, env.kLendProgramId, env.kVaultProgramId);
 
     console.log('Getting  oracle mappings');
     const oracleConfigs = await kaminoManager.getScopeOracleConfigs();
@@ -311,11 +312,7 @@ async function main() {
     .action(async ({ lendingMarket, staging }) => {
       const env = initializeClient(false, staging);
       const lendingMarketAddress = new PublicKey(lendingMarket);
-      const lendingMarketState = await LendingMarket.fetch(
-        env.provider.connection,
-        lendingMarketAddress,
-        env.kLendProgramId
-      );
+      const lendingMarketState = await LendingMarket.fetch(env.connection, lendingMarketAddress, env.kLendProgramId);
 
       if (!lendingMarketState) {
         throw new Error('Lending Market not found');
@@ -341,7 +338,7 @@ async function main() {
       const lendingMarketAddress = new PublicKey(lendingMarket);
 
       const kaminoMarket = await KaminoMarket.load(
-        env.provider.connection,
+        env.connection,
         lendingMarketAddress,
         DEFAULT_RECENT_SLOT_DURATION_MS,
         env.kLendProgramId
@@ -351,11 +348,7 @@ async function main() {
         throw new Error('Lending Market not found');
       }
 
-      const lendingMarketState = await LendingMarket.fetch(
-        env.provider.connection,
-        lendingMarketAddress,
-        env.kLendProgramId
-      );
+      const lendingMarketState = await LendingMarket.fetch(env.connection, lendingMarketAddress, env.kLendProgramId);
 
       if (!lendingMarketState) {
         throw new Error('Lending Market not found');
@@ -395,11 +388,7 @@ async function main() {
     .action(async ({ lendingMarket, lendingMarketConfigPath, mode, staging }) => {
       const env = initializeClient(mode === 'multisig', staging);
       const lendingMarketAddress = new PublicKey(lendingMarket);
-      const lendingMarketState = await LendingMarket.fetch(
-        env.provider.connection,
-        lendingMarketAddress,
-        env.kLendProgramId
-      );
+      const lendingMarketState = await LendingMarket.fetch(env.connection, lendingMarketAddress, env.kLendProgramId);
       if (!lendingMarketState) {
         throw new Error('Lending Market not found');
       }
@@ -412,7 +401,7 @@ async function main() {
         throw new Error('If using multisig mode, multisig is required');
       }
 
-      const kaminoManager = new KaminoManager(env.provider.connection, env.kLendProgramId, env.kVaultProgramId);
+      const kaminoManager = new KaminoManager(env.connection, env.kLendProgramId, env.kVaultProgramId);
 
       const newLendingMarket = LendingMarket.fromJSON(JSON.parse(fs.readFileSync(lendingMarketConfigPath, 'utf8')));
 
@@ -439,11 +428,7 @@ async function main() {
     .action(async ({ lendingMarket, mode, staging }) => {
       const env = initializeClient(mode === 'multisig', staging);
       const lendingMarketAddress = new PublicKey(lendingMarket);
-      const lendingMarketState = await LendingMarket.fetch(
-        env.provider.connection,
-        lendingMarketAddress,
-        env.kLendProgramId
-      );
+      const lendingMarketState = await LendingMarket.fetch(env.connection, lendingMarketAddress, env.kLendProgramId);
       if (!lendingMarketState) {
         throw new Error('Lending Market not found');
       }
@@ -459,7 +444,7 @@ async function main() {
         throw new Error('If using multisig mode, multisig is required');
       }
 
-      const kaminoManager = new KaminoManager(env.provider.connection, env.kLendProgramId, env.kVaultProgramId);
+      const kaminoManager = new KaminoManager(env.connection, env.kLendProgramId, env.kVaultProgramId);
 
       const ixn = kaminoManager.updateLendingMarketOwnerIxs(marketWithAddress);
 
@@ -534,6 +519,7 @@ function setUpProgram(args: {
     provider,
     payer,
     client,
+    connection,
     kLendProgramId: args.kLendProgramId,
     kVaultProgramId: args.kVaultProgramId,
   };
@@ -542,6 +528,7 @@ function setUpProgram(args: {
 export type Env = {
   provider: anchor.AnchorProvider;
   payer: Keypair;
+  connection: Connection;
   client: Web3Client;
   kLendProgramId: PublicKey;
   kVaultProgramId: PublicKey;
@@ -632,7 +619,6 @@ function parseReserveConfigFromFile(farmConfigFromFile: any): ReserveConfig {
     protocolLiquidationFeePct: farmConfigFromFile.protocolLiquidationFeePct,
     protocolTakeRatePct: farmConfigFromFile.protocolLiquidationFeePct,
     assetTier: farmConfigFromFile.assetTier,
-    multiplierSideBoost: farmConfigFromFile.multiplierSideBoost,
     maxLiquidationBonusBps: farmConfigFromFile.maxLiquidationBonusBps,
     badDebtLiquidationBonusBps: farmConfigFromFile.badDebtLiquidationBonusBps,
     fees: {
@@ -674,13 +660,14 @@ function parseReserveConfigFromFile(farmConfigFromFile: any): ReserveConfig {
     borrowFactorPct: new BN(farmConfigFromFile.borrowFactorPct),
     elevationGroups: farmConfigFromFile.elevationGroups,
     deleveragingThresholdSlotsPerBps: new BN(farmConfigFromFile.deleveragingThresholdSlotsPerBps),
-    multiplierTagBoost: farmConfigFromFile.multiplierTagBoost,
     disableUsageAsCollOutsideEmode: farmConfigFromFile.disableUsageAsCollOutsideEmode,
     utilizationLimitBlockBorrowingAbove: farmConfigFromFile.utilizationLimitBlockBorrowingAbove,
     hostFixedInterestRateBps: farmConfigFromFile.hostFixedInterestRateBps,
     borrowLimitOutsideElevationGroup: new BN(farmConfigFromFile.borrowLimitOutsideElevationGroup),
     borrowLimitAgainstThisCollateralInElevationGroup: parseReserveBorrowLimitAgainstCollInEmode(farmConfigFromFile),
     reserved1: Array(2).fill(0),
+    reserved2: Array(2).fill(0),
+    reserved3: Array(8).fill(0),
   };
 
   return new ReserveConfig(reserveConfigFields);
@@ -760,7 +747,6 @@ function parseReserveConfigToFile(reserveConfig: ReserveConfig) {
     protocolLiquidationFeePct: reserveConfig.protocolLiquidationFeePct,
     protocolTakeRatePct: reserveConfig.protocolLiquidationFeePct,
     assetTier: reserveConfig.assetTier,
-    multiplierSideBoost: reserveConfig.multiplierSideBoost,
     maxLiquidationBonusBps: reserveConfig.maxLiquidationBonusBps,
     badDebtLiquidationBonusBps: reserveConfig.badDebtLiquidationBonusBps,
     fees: {
@@ -792,7 +778,6 @@ function parseReserveConfigToFile(reserveConfig: ReserveConfig) {
     borrowFactorPct: reserveConfig.borrowFactorPct.toString(),
     elevationGroups: reserveConfig.elevationGroups,
     deleveragingThresholdSlotsPerBps: reserveConfig.deleveragingThresholdSlotsPerBps.toString(),
-    multiplierTagBoost: reserveConfig.multiplierTagBoost,
     disableUsageAsCollOutsideEmode: reserveConfig.disableUsageAsCollOutsideEmode,
     utilizationLimitBlockBorrowingAbove: reserveConfig.utilizationLimitBlockBorrowingAbove,
     hostFixedInterestRateBps: reserveConfig.hostFixedInterestRateBps,
@@ -800,5 +785,7 @@ function parseReserveConfigToFile(reserveConfig: ReserveConfig) {
     borrowLimitAgainstThisCollateralInElevationGroup:
       reserveConfig.borrowLimitAgainstThisCollateralInElevationGroup.map((entry) => entry.toString()),
     reserved1: Array(2).fill(0),
+    reserved2: Array(2).fill(0),
+    reserved3: Array(8).fill(0),
   };
 }

@@ -59,7 +59,7 @@ export function createKaminoClient(
 ): Kamino {
   return new Kamino(
     'localnet',
-    env.provider.connection,
+    env.connection,
     globalConfig,
     new PublicKey('E6qbhrt4pFmCotNUSSEh6E5cRQCEJpMcd79Z56EG9KY'),
     WHIRLPOOL_PROGRAM_ID,
@@ -373,10 +373,7 @@ async function createOrcaStrategy(env: Env, kamino: Kamino, whirlpool: PublicKey
   const orcaStrategyIx = await kamino.createStrategy(newOrcaStrategy.publicKey, whirlpool, signer.publicKey, 'ORCA');
   tx.add(orcaStrategyIx);
 
-  const txHash = await sendTransactionWithLogs(env.provider.connection, tx, signer.publicKey, [
-    signer,
-    newOrcaStrategy,
-  ]);
+  const txHash = await sendTransactionWithLogs(env.connection, tx, signer.publicKey, [signer, newOrcaStrategy]);
   console.log('transaction hash', txHash);
   console.log('new Orca strategy has been created', newOrcaStrategy.publicKey.toString());
   return newOrcaStrategy.publicKey;
@@ -511,7 +508,7 @@ export async function updateTreasuryFeeVault(
     collateralId: collateralTokenToNumber(collateralToken),
   };
 
-  const config = await GlobalConfig.fetch(env.provider.connection, globalConfig);
+  const config = await GlobalConfig.fetch(env.connection, globalConfig);
   if (!config) {
     throw new Error(`Error retrieving the config ${globalConfig.toString()}`);
   }
@@ -532,7 +529,7 @@ export async function updateTreasuryFeeVault(
   const ix = KaminoInstructions.updateTreasuryFeeVault(args, accounts);
   tx.add(ix);
 
-  const hash = await sendTransactionWithLogs(env.provider.connection, tx, env.admin.publicKey, [env.admin]);
+  const hash = await sendTransactionWithLogs(env.connection, tx, env.admin.publicKey, [env.admin]);
   console.log('updateTreasuryFeeVault ix:', hash);
   if (!hash) {
     throw new Error('Hash for updateTreasuryFeeVault tx not found');
@@ -594,7 +591,7 @@ export async function createKTokenStrategy(
     tokenB.toString(),
     mintB.toString()
   );
-  const scope = new Scope('localnet', env.provider.connection);
+  const scope = new Scope('localnet', env.connection);
   const tokenAOracle = prices[tokenA];
   const tokenBOracle = prices[tokenB];
   const tokenAScopeChain = await addScopePriceMapping(env, scope, tokenA, tokenAOracle);
@@ -672,13 +669,13 @@ export async function mintKTokenToUser(
   );
   const investIx = await kamino.invest(address, user.publicKey);
   const tx = await buildVersionedTransaction(
-    env.provider.connection,
+    env.connection,
     user.publicKey,
     [budgetIx, sharesAtaIx, depositIx, investIx],
     [strategy.strategyLookupTable]
   );
   tx.sign([user]);
-  const txid = await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'confirmed');
+  const txid = await sendAndConfirmVersionedTransaction(env.connection, tx, 'confirmed');
 
   console.log(`Invested in ${address.toBase58()} with ${txid}`);
   await sleep(2000);
@@ -710,7 +707,7 @@ export async function mintToUser(
   if (mint.equals(WSOL_MINT)) {
     const [ata, ix] = createAssociatedTokenAccountIdempotentInstruction(user, mint, user);
 
-    await env.provider.connection.requestAirdrop(user, amountLamports);
+    await env.connection.requestAirdrop(user, amountLamports);
     await sleep(3000);
 
     if (mintIntoWsolAta) {
@@ -718,19 +715,16 @@ export async function mintToUser(
       // user simply has SOL
       // The Kamino sdk does not currently wrap SOL automatically
       const depositWsol = getDepositWsolIxns(user, ata, new Decimal(amountLamports));
-      const tx = await buildVersionedTransaction(env.provider.connection, mintAuthority.publicKey, [
-        ix,
-        ...depositWsol,
-      ]);
+      const tx = await buildVersionedTransaction(env.connection, mintAuthority.publicKey, [ix, ...depositWsol]);
       const txHash = await buildAndSendTxnWithLogs(
-        env.provider.connection,
+        env.connection,
         tx,
         mintAuthority,
         [mintAuthority!],
         false,
         'Wsol ATA topup'
       );
-      await env.provider.connection.confirmTransaction(txHash, 'confirmed');
+      await env.connection.confirmTransaction(txHash, 'confirmed');
     }
   } else {
     const [ata, ix] = createAssociatedTokenAccountIdempotentInstruction(
@@ -741,9 +735,9 @@ export async function mintToUser(
     );
     const instruction = getMintToIx(mintAuthority.publicKey, mint, ata, amountLamports, tokenProgram);
 
-    const tx = await buildVersionedTransaction(env.provider.connection, env.admin.publicKey, [ix, instruction]);
+    const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, [ix, instruction]);
 
-    const sig = await buildAndSendTxnWithLogs(env.provider.connection, tx, env.wallet.payer, [mintAuthority]);
+    const sig = await buildAndSendTxnWithLogs(env.connection, tx, env.wallet.payer, [mintAuthority]);
     return sig;
   }
 }

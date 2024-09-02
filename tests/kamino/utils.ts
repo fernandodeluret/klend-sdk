@@ -250,5 +250,5 @@ export function getKTokenSymbols(symbol: string): [Dex, string, string] {
 export type AssetQuantityTuple = [string, string];
 
 export async function getMintDecimals(env: Env, mint: PublicKey): Promise<number> {
-  return (await getMint(env.provider.connection, mint, env.provider.connection.commitment, TOKEN_PROGRAM_ID)).decimals;
+  return (await getMint(env.connection, mint, env.connection.commitment, TOKEN_PROGRAM_ID)).decimals;
 }

@@ -1104,7 +1104,134 @@ export class KaminoMarket {
   getRecentSlotDurationMs(): number {
     return this.recentSlotDurationMs;
   }
+
+  /* Returns true if the loan is eligible for the elevation group, including for the default one */
+  isLoanEligibleForElevationGroup(obligation: KaminoObligation, elevationGroup: number): boolean {
+    if (elevationGroup === 0) {
+      return true;
+    }
+
+    const reserveDeposits: string[] = Array.from(obligation.deposits.keys()).map((x) => x.toString());
+    const reserveBorrows: string[] = Array.from(obligation.borrows.keys()).map((x) => x.toString());
+
+    if (reserveBorrows.length > 1) {
+      return false;
+    }
+
+    const allElevationGroups = this.getMarketElevationGroupDescriptions();
+    const elevationGroupDescription = allElevationGroups[elevationGroup - 1];
+
+    // Has to be a subset
+    const allCollsIncluded = reserveDeposits.every((reserve) =>
+      elevationGroupDescription.collateralReserves.includes(reserve)
+    );
+    const allDebtsIncluded =
+      reserveBorrows.length === 0 ||
+      (reserveBorrows.length === 1 && elevationGroupDescription.debtReserve === reserveBorrows[0]);
+
+    return allCollsIncluded && allDebtsIncluded;
+  }
+
+  /* Returns all elevation groups except the default one  */
+  getMarketElevationGroupDescriptions(): ElevationGroupDescription[] {
+    const elevationGroups: ElevationGroupDescription[] = [];
+
+    // Partially build
+    for (const elevationGroup of this.state.elevationGroups) {
+      if (elevationGroup.id === 0) {
+        continue;
+      }
+      elevationGroups.push({
+        collateralReserves: [],
+        collateralLiquidityMints: [],
+        debtReserve: elevationGroup.debtReserve.toString(),
+        debtLiquidityMint: '',
+        elevationGroup: elevationGroup.id,
+      });
+    }
+
+    // Fill the remaining
+    for (const reserve of this.reserves.values()) {
+      const reserveLiquidityMint = reserve.getLiquidityMint();
+      const reserveAddress = reserve.address.toString();
+      const reserveElevationGroups = reserve.state.config.elevationGroups;
+      for (const elevationGroupId of reserveElevationGroups) {
+        if (elevationGroupId === 0) {
+          continue;
+        }
+
+        const elevationGroupDescription = elevationGroups[elevationGroupId - 1];
+        if (elevationGroupDescription) {
+          if (reserveAddress === elevationGroupDescription.debtReserve) {
+            elevationGroups[elevationGroupId - 1].debtLiquidityMint = reserveLiquidityMint.toString();
+          } else {
+            elevationGroups[elevationGroupId - 1].collateralReserves.push(reserveAddress);
+            elevationGroups[elevationGroupId - 1].collateralLiquidityMints.push(reserveLiquidityMint.toString());
+          }
+        } else {
+          throw new Error(`Invalid elevation group id ${elevationGroupId} at reserve ${reserveAddress}`);
+        }
+      }
+    }
+
+    return elevationGroups;
+  }
+
+  /* Returns all elevation groups for a given combination of liquidity mints, except the default one */
+  getElevationGroupsForMintsCombination(
+    collLiquidityMints: PublicKey[],
+    debtLiquidityMint?: PublicKey
+  ): ElevationGroupDescription[] {
+    const allElevationGroups = this.getMarketElevationGroupDescriptions();
+
+    return allElevationGroups.filter((elevationGroupDescription) => {
+      return (
+        collLiquidityMints.every((mint) =>
+          elevationGroupDescription.collateralLiquidityMints.includes(mint.toString())
+        ) &&
+        (debtLiquidityMint == undefined || debtLiquidityMint.toString() === elevationGroupDescription.debtLiquidityMint)
+      );
+    });
+  }
+
+  /* Returns all elevation groups for a given combination of reserves, except the default one */
+  getElevationGroupsForReservesCombination(
+    collReserves: PublicKey[],
+    debtReserve?: PublicKey
+  ): ElevationGroupDescription[] {
+    const allElevationGroups = this.getMarketElevationGroupDescriptions();
+
+    return allElevationGroups.filter((elevationGroupDescription) => {
+      return (
+        collReserves.every((mint) => elevationGroupDescription.collateralReserves.includes(mint.toString())) &&
+        (debtReserve == undefined || debtReserve.toString() === elevationGroupDescription.debtReserve)
+      );
+    });
+  }
+
+  /* Returns all elevation groups for a given obligation, except the default one */
+  getElevationGroupsForObligation(obligation: KaminoObligation): ElevationGroupDescription[] {
+    if (obligation.borrows.size > 1) {
+      return [];
+    }
+
+    const collReserves = Array.from(obligation.deposits.keys());
+    if (obligation.borrows.size === 0) {
+      return this.getElevationGroupsForReservesCombination(collReserves);
+    } else {
+      const debtReserve = Array.from(obligation.borrows.keys())[0];
+      return this.getElevationGroupsForReservesCombination(collReserves, debtReserve);
+    }
+  }
 }
+
+export type ElevationGroupDescription = {
+  collateralReserves: string[];
+  collateralLiquidityMints: string[];
+  debtReserve: string;
+  debtLiquidityMint: string;
+  elevationGroup: number;
+};
 
 export type KlendPrices = {
   scope: KaminoPrices;

@@ -256,25 +256,25 @@ export class UpdateReferralFeeBps {
   }
 }
 
-export interface UpdateMultiplierPointsJSON {
-  kind: "UpdateMultiplierPoints"
+export interface DeprecatedUpdateMultiplierPointsJSON {
+  kind: "DeprecatedUpdateMultiplierPoints"
 }
 
-export class UpdateMultiplierPoints {
+export class DeprecatedUpdateMultiplierPoints {
   static readonly discriminator = 11
-  static readonly kind = "UpdateMultiplierPoints"
+  static readonly kind = "DeprecatedUpdateMultiplierPoints"
   readonly discriminator = 11
-  readonly kind = "UpdateMultiplierPoints"
+  readonly kind = "DeprecatedUpdateMultiplierPoints"
 
-  toJSON(): UpdateMultiplierPointsJSON {
+  toJSON(): DeprecatedUpdateMultiplierPointsJSON {
     return {
-      kind: "UpdateMultiplierPoints",
+      kind: "DeprecatedUpdateMultiplierPoints",
     }
   }
 
   toEncodable() {
     return {
-      UpdateMultiplierPoints: {},
+      DeprecatedUpdateMultiplierPoints: {},
     }
   }
 }
@@ -394,6 +394,29 @@ export class UpdateMinValueSkipPriorityLiqCheck {
   }
 }
 
+export interface UpdatePaddingFieldsJSON {
+  kind: "UpdatePaddingFields"
+}
+
+export class UpdatePaddingFields {
+  static readonly discriminator = 17
+  static readonly kind = "UpdatePaddingFields"
+  readonly discriminator = 17
+  readonly kind = "UpdatePaddingFields"
+
+  toJSON(): UpdatePaddingFieldsJSON {
+    return {
+      kind: "UpdatePaddingFields",
+    }
+  }
+
+  toEncodable() {
+    return {
+      UpdatePaddingFields: {},
+    }
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function fromDecoded(obj: any): types.UpdateLendingMarketModeKind {
   if (typeof obj !== "object") {
@@ -433,8 +456,8 @@ export function fromDecoded(obj: any): types.UpdateLendingMarketModeKind {
   if ("UpdateReferralFeeBps" in obj) {
     return new UpdateReferralFeeBps()
   }
-  if ("UpdateMultiplierPoints" in obj) {
-    return new UpdateMultiplierPoints()
+  if ("DeprecatedUpdateMultiplierPoints" in obj) {
+    return new DeprecatedUpdateMultiplierPoints()
   }
   if ("UpdatePriceRefreshTriggerToMaxAgePct" in obj) {
     return new UpdatePriceRefreshTriggerToMaxAgePct()
@@ -450,6 +473,9 @@ export function fromDecoded(obj: any): types.UpdateLendingMarketModeKind {
   }
   if ("UpdateMinValueSkipPriorityLiqCheck" in obj) {
     return new UpdateMinValueSkipPriorityLiqCheck()
+  }
+  if ("UpdatePaddingFields" in obj) {
+    return new UpdatePaddingFields()
   }
 
   throw new Error("Invalid enum object")
@@ -492,8 +518,8 @@ export function fromJSON(
     case "UpdateReferralFeeBps": {
       return new UpdateReferralFeeBps()
     }
-    case "UpdateMultiplierPoints": {
-      return new UpdateMultiplierPoints()
+    case "DeprecatedUpdateMultiplierPoints": {
+      return new DeprecatedUpdateMultiplierPoints()
     }
     case "UpdatePriceRefreshTriggerToMaxAgePct": {
       return new UpdatePriceRefreshTriggerToMaxAgePct()
@@ -509,6 +535,9 @@ export function fromJSON(
     }
     case "UpdateMinValueSkipPriorityLiqCheck": {
       return new UpdateMinValueSkipPriorityLiqCheck()
+    }
+    case "UpdatePaddingFields": {
+      return new UpdatePaddingFields()
     }
   }
 }
@@ -526,12 +555,13 @@ export function layout(property?: string) {
     borsh.struct([], "UpdateInsolvencyRiskLtv"),
     borsh.struct([], "UpdateElevationGroup"),
     borsh.struct([], "UpdateReferralFeeBps"),
-    borsh.struct([], "UpdateMultiplierPoints"),
+    borsh.struct([], "DeprecatedUpdateMultiplierPoints"),
     borsh.struct([], "UpdatePriceRefreshTriggerToMaxAgePct"),
     borsh.struct([], "UpdateAutodeleverageEnabled"),
     borsh.struct([], "UpdateBorrowingDisabled"),
     borsh.struct([], "UpdateMinNetValueObligationPostAction"),
     borsh.struct([], "UpdateMinValueSkipPriorityLiqCheck"),
+    borsh.struct([], "UpdatePaddingFields"),
   ])
   if (property !== undefined) {
     return ret.replicate(property)

@@ -108,6 +108,9 @@ export type CustomError =
   | ObligationCollateralExceedsElevationGroupLimit
   | ObligationElevationGroupMultipleDebtReserve
   | UnsupportedTokenExtension
+  | InvalidTokenAccount
+  | DepositDisabledOutsideElevationGroup
+  | CannotCalculateReferralAmountDueToSlotsMismatch
 
 export class InvalidMarketAuthority extends Error {
   static readonly code = 6000
@@ -1365,6 +1368,39 @@ export class UnsupportedTokenExtension extends Error {
   }
 }
 
+export class InvalidTokenAccount extends Error {
+  static readonly code = 6109
+  readonly code = 6109
+  readonly name = "InvalidTokenAccount"
+  readonly msg = "Can't have an spl token mint with a t22 account"
+
+  constructor(readonly logs?: string[]) {
+    super("6109: Can't have an spl token mint with a t22 account")
+  }
+}
+
+export class DepositDisabledOutsideElevationGroup extends Error {
+  static readonly code = 6110
+  readonly code = 6110
+  readonly name = "DepositDisabledOutsideElevationGroup"
+  readonly msg = "Can't deposit into this reserve outside elevation group"
+
+  constructor(readonly logs?: string[]) {
+    super("6110: Can't deposit into this reserve outside elevation group")
+  }
+}
+
+export class CannotCalculateReferralAmountDueToSlotsMismatch extends Error {
+  static readonly code = 6111
+  readonly code = 6111
+  readonly name = "CannotCalculateReferralAmountDueToSlotsMismatch"
+  readonly msg = "Cannot calculate referral amount due to slots mismatch"
+
+  constructor(readonly logs?: string[]) {
+    super("6111: Cannot calculate referral amount due to slots mismatch")
+  }
+}
+
 export function fromCode(code: number, logs?: string[]): CustomError | null {
   switch (code) {
     case 6000:
@@ -1585,6 +1621,12 @@ export function fromCode(code: number, logs?: string[]): CustomError | null {
       return new ObligationElevationGroupMultipleDebtReserve(logs)
     case 6108:
       return new UnsupportedTokenExtension(logs)
+    case 6109:
+      return new InvalidTokenAccount(logs)
+    case 6110:
+      return new DepositDisabledOutsideElevationGroup(logs)
+    case 6111:
+      return new CannotCalculateReferralAmountDueToSlotsMismatch(logs)
   }
 
   return null

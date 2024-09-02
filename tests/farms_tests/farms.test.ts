@@ -61,7 +61,7 @@ describe('farming_lending_market', function () {
     await addRewardToFarm(env, usdh, reserve.publicKey, kind);
     await sleep(2000);
 
-    const reserveState: Reserve = (await Reserve.fetch(env.provider.connection, reserve.publicKey))!!;
+    const reserveState: Reserve = (await Reserve.fetch(env.connection, reserve.publicKey))!!;
     const farmAddress = kind === 'Collateral' ? reserveState.farmCollateral : reserveState.farmDebt;
 
     await topUpRewardToFarm(env, usdh, new Decimal('100'), reserve.publicKey, kind);
@@ -69,7 +69,7 @@ describe('farming_lending_market', function () {
     await updateRps(env, usdh, 5, reserve.publicKey, kind);
     await sleep(2000);
 
-    const farmState = (await FarmState.fetch(env.provider.connection, farmAddress))!;
+    const farmState = (await FarmState.fetch(env.connection, farmAddress))!;
     assert.ok(farmState.rewardInfos[0].rewardsAvailable.toNumber() > 0);
     assert.ok(farmState.rewardInfos[0].token.mint.toString() === usdh.toString());
     assert.ok(farmState.rewardInfos[0].rewardScheduleCurve.points[0].rewardPerTimeUnit.toNumber() === 5);
@@ -131,7 +131,7 @@ const createRewardsScenario = async (env: Env, kind: string, deposit: number, bo
   await sleep(2000);
 
   const kaminoMarket = (await KaminoMarket.load(
-    env.provider.connection,
+    env.connection,
     lendingMarket.publicKey,
     DEFAULT_RECENT_SLOT_DURATION_MS,
     PROGRAM_ID,

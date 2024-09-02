@@ -43,8 +43,8 @@ export interface LendingMarketFields {
   globalAllowedBorrowValue: BN
   /** The address of the risk council, in charge of making parameter and risk decisions on behalf of the protocol */
   riskCouncil: PublicKey
-  /** Reward points multiplier per obligation type */
-  multiplierPointsTagBoost: Array<number>
+  /** [DEPRECATED] Reward points multiplier per obligation type */
+  reserved1: Array<number>
   /** Elevation groups are used to group together reserves that have the same risk parameters and can bump the ltv and liquidation threshold */
   elevationGroups: Array<types.ElevationGroupFields>
   elevationGroupPadding: Array<BN>
@@ -93,8 +93,8 @@ export interface LendingMarketJSON {
   globalAllowedBorrowValue: string
   /** The address of the risk council, in charge of making parameter and risk decisions on behalf of the protocol */
   riskCouncil: string
-  /** Reward points multiplier per obligation type */
-  multiplierPointsTagBoost: Array<number>
+  /** [DEPRECATED] Reward points multiplier per obligation type */
+  reserved1: Array<number>
   /** Elevation groups are used to group together reserves that have the same risk parameters and can bump the ltv and liquidation threshold */
   elevationGroups: Array<types.ElevationGroupJSON>
   elevationGroupPadding: Array<string>
@@ -143,8 +143,8 @@ export class LendingMarket {
   readonly globalAllowedBorrowValue: BN
   /** The address of the risk council, in charge of making parameter and risk decisions on behalf of the protocol */
   readonly riskCouncil: PublicKey
-  /** Reward points multiplier per obligation type */
-  readonly multiplierPointsTagBoost: Array<number>
+  /** [DEPRECATED] Reward points multiplier per obligation type */
+  readonly reserved1: Array<number>
   /** Elevation groups are used to group together reserves that have the same risk parameters and can bump the ltv and liquidation threshold */
   readonly elevationGroups: Array<types.ElevationGroup>
   readonly elevationGroupPadding: Array<BN>
@@ -175,7 +175,7 @@ export class LendingMarket {
     borsh.u64("globalUnhealthyBorrowValue"),
     borsh.u64("globalAllowedBorrowValue"),
     borsh.publicKey("riskCouncil"),
-    borsh.array(borsh.u8(), 8, "multiplierPointsTagBoost"),
+    borsh.array(borsh.u8(), 8, "reserved1"),
     borsh.array(types.ElevationGroup.layout(), 32, "elevationGroups"),
     borsh.array(borsh.u64(), 90, "elevationGroupPadding"),
     borsh.u128("minNetValueInObligationSf"),
@@ -204,7 +204,7 @@ export class LendingMarket {
     this.globalUnhealthyBorrowValue = fields.globalUnhealthyBorrowValue
     this.globalAllowedBorrowValue = fields.globalAllowedBorrowValue
     this.riskCouncil = fields.riskCouncil
-    this.multiplierPointsTagBoost = fields.multiplierPointsTagBoost
+    this.reserved1 = fields.reserved1
     this.elevationGroups = fields.elevationGroups.map(
       (item) => new types.ElevationGroup({ ...item })
     )
@@ -277,7 +277,7 @@ export class LendingMarket {
       globalUnhealthyBorrowValue: dec.globalUnhealthyBorrowValue,
       globalAllowedBorrowValue: dec.globalAllowedBorrowValue,
       riskCouncil: dec.riskCouncil,
-      multiplierPointsTagBoost: dec.multiplierPointsTagBoost,
+      reserved1: dec.reserved1,
       elevationGroups: dec.elevationGroups.map(
         (
           item: any /* eslint-disable-line @typescript-eslint/no-explicit-any */
@@ -312,7 +312,7 @@ export class LendingMarket {
       globalUnhealthyBorrowValue: this.globalUnhealthyBorrowValue.toString(),
       globalAllowedBorrowValue: this.globalAllowedBorrowValue.toString(),
       riskCouncil: this.riskCouncil.toString(),
-      multiplierPointsTagBoost: this.multiplierPointsTagBoost,
+      reserved1: this.reserved1,
       elevationGroups: this.elevationGroups.map((item) => item.toJSON()),
       elevationGroupPadding: this.elevationGroupPadding.map((item) =>
         item.toString()
@@ -347,7 +347,7 @@ export class LendingMarket {
       globalUnhealthyBorrowValue: new BN(obj.globalUnhealthyBorrowValue),
       globalAllowedBorrowValue: new BN(obj.globalAllowedBorrowValue),
       riskCouncil: new PublicKey(obj.riskCouncil),
-      multiplierPointsTagBoost: obj.multiplierPointsTagBoost,
+      reserved1: obj.reserved1,
       elevationGroups: obj.elevationGroups.map((item) =>
         types.ElevationGroup.fromJSON(item)
       ),

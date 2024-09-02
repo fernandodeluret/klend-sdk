@@ -45,7 +45,7 @@ export async function createMarketWithTwoAssets(
     admin: env.admin.publicKey,
   });
   const _createMarketSig = await buildAndSendTxn(
-    env.provider.connection,
+    env.connection,
     env.admin,
     createMarketIxns,
     [marketKp],
@@ -97,7 +97,7 @@ export async function createMarketWithTwoAssets(
   });
 
   const _createsolReserveSig = await buildAndSendTxn(
-    env.provider.connection,
+    env.connection,
     env.admin,
     createsolReserveTxnIxns[0],
     [solReserveKp],
@@ -108,7 +108,7 @@ export async function createMarketWithTwoAssets(
   const computeBudgetIx = buildComputeBudgetIx(400_000);
 
   const _updatesolReserveSig = await buildAndSendTxn(
-    env.provider.connection,
+    env.connection,
     env.admin,
     [computeBudgetIx, ...createsolReserveTxnIxns[1]],
     [],
@@ -123,7 +123,7 @@ export async function createMarketWithTwoAssets(
   });
 
   const _createusdcReserveSig = await buildAndSendTxn(
-    env.provider.connection,
+    env.connection,
     env.admin,
     createusdcReserveTxnIxns[0],
     [usdcReserveKp],
@@ -132,7 +132,7 @@ export async function createMarketWithTwoAssets(
   );
 
   const _updateusdcReserveSig = await buildAndSendTxn(
-    env.provider.connection,
+    env.connection,
     env.admin,
     [computeBudgetIx, ...createusdcReserveTxnIxns[1]],
     [],
@@ -205,45 +205,31 @@ export async function createVaultsWithTwoReservesMarketsWithTwoAssets(
   const { vault: usdcVaultKp, ixns: usdcVaultCreateInstructions } = await kaminoManager.createVaultIxs(
     kaminoUsdcVaultConfig
   );
-  await buildAndSendTxn(
-    env.provider.connection,
-    env.admin,
-    usdcVaultCreateInstructions,
-    [usdcVaultKp],
-    [],
-    'InitusdcVault'
-  );
+  await buildAndSendTxn(env.connection, env.admin, usdcVaultCreateInstructions, [usdcVaultKp], [], 'InitusdcVault');
 
   const { vault: solVaultKp, ixns: solVaultCreateInstructions } = await kaminoManager.createVaultIxs(
     kaminoSolVaultConfig
   );
-  await buildAndSendTxn(
-    env.provider.connection,
-    env.admin,
-    solVaultCreateInstructions,
-    [solVaultKp],
-    [],
-    'InitsolVault'
-  );
+  await buildAndSendTxn(env.connection, env.admin, solVaultCreateInstructions, [solVaultKp], [], 'InitsolVault');
 
   const usdcVault = new KaminoVault(usdcVaultKp.publicKey);
   const solVault = new KaminoVault(solVaultKp.publicKey);
 
   const usdcReserveWithAddress1: ReserveWithAddress = {
     address: marketSetup1.usdcReserve,
-    state: (await Reserve.fetch(env.provider.connection, marketSetup1.usdcReserve))!,
+    state: (await Reserve.fetch(env.connection, marketSetup1.usdcReserve))!,
   };
   const usdcReserveWithAddress2: ReserveWithAddress = {
     address: marketSetup2.usdcReserve,
-    state: (await Reserve.fetch(env.provider.connection, marketSetup2.usdcReserve))!,
+    state: (await Reserve.fetch(env.connection, marketSetup2.usdcReserve))!,
   };
   const solReserveWithAddress1: ReserveWithAddress = {
     address: marketSetup1.solReserve,
-    state: (await Reserve.fetch(env.provider.connection, marketSetup1.solReserve))!,
+    state: (await Reserve.fetch(env.connection, marketSetup1.solReserve))!,
   };
   const solReserveWithAddress2: ReserveWithAddress = {
     address: marketSetup2.solReserve,
-    state: (await Reserve.fetch(env.provider.connection, marketSetup2.solReserve))!,
+    state: (await Reserve.fetch(env.connection, marketSetup2.solReserve))!,
   };
 
   // Update Reserve Allocation
@@ -261,7 +247,7 @@ export async function createVaultsWithTwoReservesMarketsWithTwoAssets(
   const ix1 = await kaminoManager.updateVaultReserveAllocationIxs(usdcVault, firstusdcReserveAllocationConfig);
   const ix2 = await kaminoManager.updateVaultReserveAllocationIxs(usdcVault, secondusdcReserveAllocationConfig);
 
-  await buildAndSendTxn(env.provider.connection, env.admin, [ix1, ix2], [], [], 'UpdateusdcVaultReserveAllocation');
+  await buildAndSendTxn(env.connection, env.admin, [ix1, ix2], [], [], 'UpdateusdcVaultReserveAllocation');
 
   const firstsolReserveAllocationConfig = new ReserveAllocationConfig(
     solReserveWithAddress1,
@@ -279,7 +265,7 @@ export async function createVaultsWithTwoReservesMarketsWithTwoAssets(
   const ixn2 = await kaminoManager.updateVaultReserveAllocationIxs(solVault, secondsolReserveAllocationConfig);
 
   await buildAndSendTxn(
-    env.provider.connection,
+    env.connection,
     env.admin,
     [computeBudgetIx, ixn1, ixn2],
     [],

@@ -44,10 +44,10 @@ export const repayWithCollTestAdapter = async (
 
   userLut = userLookupTable;
   for (const txIxns of txsIxns) {
-    const tx = await buildVersionedTransaction(env.provider.connection, owner.publicKey, txIxns);
+    const tx = await buildVersionedTransaction(env.connection, owner.publicKey, txIxns);
     tx.sign([owner]);
 
-    const _txid = await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'confirmed');
+    const _txid = await sendAndConfirmVersionedTransaction(env.connection, tx, 'confirmed');
     await sleep(1000);
   }
 
@@ -86,11 +86,11 @@ export const repayWithCollTestAdapter = async (
     lookupTables.push(userLut);
   }
 
-  const tx = await buildVersionedTransaction(env.provider.connection, owner.publicKey, ixns, lookupTables);
+  const tx = await buildVersionedTransaction(env.connection, owner.publicKey, ixns, lookupTables);
   tx.sign([owner]);
   tx.sign([env.admin]);
 
-  const txid = await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'confirmed');
+  const txid = await sendAndConfirmVersionedTransaction(env.connection, tx, 'confirmed');
   return {
     txid,
     swapInputs,

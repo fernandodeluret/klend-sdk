@@ -20,7 +20,7 @@ describe('setup_lending_market', function () {
     console.log(sig);
 
     const market = await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -90,7 +90,7 @@ describe('setup_lending_market', function () {
     await sleep(2000);
 
     const kaminoMarket = await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -133,7 +133,7 @@ describe('setup_lending_market', function () {
     await sleep(2000);
 
     const kaminoMarket = await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -187,7 +187,7 @@ describe('setup_lending_market', function () {
     await sleep(2000);
 
     const kaminoMarket = await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -241,7 +241,7 @@ describe('setup_lending_market', function () {
     await sleep(2000);
 
     const kaminoMarket = await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -283,7 +283,7 @@ describe('setup_lending_market', function () {
       usdh,
       env.admin.publicKey,
       new VanillaObligation(PROGRAM_ID),
-      await env.provider.connection.getSlot(),
+      await env.connection.getSlot(),
       undefined,
       1_000_000,
       true,
@@ -316,7 +316,7 @@ describe('setup_lending_market', function () {
     await sleep(2000);
 
     const kaminoMarket = await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -360,7 +360,7 @@ describe('setup_lending_market', function () {
       usdh,
       env.admin.publicKey,
       new VanillaObligation(PROGRAM_ID),
-      await env.provider.connection.getSlot(),
+      await env.connection.getSlot(),
       repayer.publicKey,
       1_000_000,
       true,

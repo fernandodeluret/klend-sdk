@@ -1453,52 +1453,6 @@ export function parseForChangesReserveConfigAndGetIxs(
           ),
         });
       }
-    } else if (key === 'multiplierSideBoost') {
-      if (reserve === undefined) {
-        updateReserveIxnsArgs.push({
-          mode: UpdateConfigMode.UpdateMultiplierSideBoost.discriminator,
-          value: updateReserveConfigEncodedValue(
-            UpdateConfigMode.UpdateMultiplierSideBoost.discriminator,
-            reserveConfig.multiplierSideBoost
-          ),
-        });
-      } else {
-        for (let i = 0; i < reserveConfig.multiplierSideBoost.length; i++) {
-          if (reserve.config.multiplierSideBoost[i] !== reserveConfig.multiplierSideBoost[i]) {
-            updateReserveIxnsArgs.push({
-              mode: UpdateConfigMode.UpdateMultiplierSideBoost.discriminator,
-              value: updateReserveConfigEncodedValue(
-                UpdateConfigMode.UpdateMultiplierSideBoost.discriminator,
-                reserveConfig.multiplierSideBoost
-              ),
-            });
-            break;
-          }
-        }
-      }
-    } else if (key === 'multiplierTagBoost') {
-      if (reserve === undefined) {
-        updateReserveIxnsArgs.push({
-          mode: UpdateConfigMode.UpdateMultiplierTagBoost.discriminator,
-          value: updateReserveConfigEncodedValue(
-            UpdateConfigMode.UpdateMultiplierTagBoost.discriminator,
-            reserveConfig.multiplierTagBoost
-          ),
-        });
-      } else {
-        for (let i = 0; i < reserveConfig.multiplierTagBoost.length; i++) {
-          if (reserve.config.multiplierTagBoost[i] !== reserveConfig.multiplierTagBoost[i]) {
-            updateReserveIxnsArgs.push({
-              mode: UpdateConfigMode.UpdateMultiplierTagBoost.discriminator,
-              value: updateReserveConfigEncodedValue(
-                UpdateConfigMode.UpdateMultiplierTagBoost.discriminator,
-                reserveConfig.multiplierTagBoost
-              ),
-            });
-            break;
-          }
-        }
-      }
     } else if (key === 'deleveragingMarginCallPeriodSecs') {
       if (reserve === undefined) {
         updateReserveIxnsArgs.push({
@@ -1877,13 +1831,6 @@ export function updateReserveConfigEncodedValue(
       for (let i = 0; i < valueArray.length; i++) {
         buffer.writeUIntLE(valueArray[i], i, 1);
       }
-      break;
-    case UpdateConfigMode.UpdateMultiplierTagBoost.discriminator:
-    case UpdateConfigMode.UpdateMultiplierSideBoost.discriminator:
-      valueArray = value as number[];
-      buffer = Buffer.alloc(2);
-      buffer.writeUIntLE(valueArray[0], 0, 1);
-      buffer.writeUIntLE(valueArray[1], 1, 1);
       break;
     default:
       buffer = Buffer.alloc(0);

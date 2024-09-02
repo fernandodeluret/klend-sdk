@@ -34,9 +34,9 @@ export async function createMintFromKeypair(
 ): Promise<PublicKey> {
   const instructions = await createMintInstructions(env, authority, mint.publicKey, decimals, tokenProgramId);
 
-  const tx = await buildVersionedTransaction(env.provider.connection, env.wallet.payer.publicKey, instructions);
+  const tx = await buildVersionedTransaction(env.connection, env.wallet.payer.publicKey, instructions);
 
-  await buildAndSendTxnWithLogs(env.provider.connection, tx, env.wallet.payer, [mint]);
+  await buildAndSendTxnWithLogs(env.connection, tx, env.wallet.payer, [mint], undefined, 'createMint');
   return mint.publicKey;
 }
 
@@ -52,7 +52,7 @@ async function createMintInstructions(
       fromPubkey: env.wallet.publicKey,
       newAccountPubkey: mint,
       space: 82,
-      lamports: await env.provider.connection.getMinimumBalanceForRentExemption(82),
+      lamports: await env.connection.getMinimumBalanceForRentExemption(82),
       programId: tokenProgramId,
     }),
     createInitializeMintInstruction(mint, decimals, authority, null, tokenProgramId),
@@ -67,9 +67,9 @@ export async function createAta(
 ): Promise<[TransactionSignature, PublicKey]> {
   const [ata, ix] = createAssociatedTokenAccountIdempotentInstruction(owner, mint, env.admin.publicKey, tokenProgram);
 
-  const tx = await buildVersionedTransaction(env.provider.connection, env.admin.publicKey, [ix]);
+  const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, [ix]);
 
-  const sig = await buildAndSendTxnWithLogs(env.provider.connection, tx, env.admin, []);
+  const sig = await buildAndSendTxnWithLogs(env.connection, tx, env.admin, []);
   return [sig, ata];
 }
 
@@ -104,11 +104,11 @@ export async function mintTo(
 ): Promise<TransactionSignature> {
   const instruction = getMintToIx(env.admin.publicKey, mint, recipient, amount, tokenProgram);
 
-  const tx = await buildVersionedTransaction(env.provider.connection, env.wallet.payer.publicKey, [
+  const tx = await buildVersionedTransaction(env.connection, env.wallet.payer.publicKey, [
     ...createAtaIxns,
     instruction,
   ]);
 
-  const sig = await buildAndSendTxnWithLogs(env.provider.connection, tx, env.wallet.payer, []);
+  const sig = await buildAndSendTxnWithLogs(env.connection, tx, env.wallet.payer, [], undefined, 'mintTo');
   return sig;
 }

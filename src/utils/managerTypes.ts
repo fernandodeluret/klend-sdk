@@ -294,7 +294,6 @@ function buildReserveConfig(fields: {
     protocolLiquidationFeePct: 0,
     protocolTakeRatePct: fields.configParams.protocolTakeRate,
     assetTier: 0,
-    multiplierSideBoost: Array(2).fill(1),
     maxLiquidationBonusBps: fields.configParams.maxLiquidationBonusBps,
     badDebtLiquidationBonusBps: fields.configParams.badDebtLiquidationBonusBps,
     fees: {
@@ -338,13 +337,14 @@ function buildReserveConfig(fields: {
     borrowFactorPct: new BN(100),
     elevationGroups: fields.configParams.elevationGroups,
     deleveragingThresholdSlotsPerBps: new BN(7200),
-    multiplierTagBoost: Array(8).fill(1),
     disableUsageAsCollOutsideEmode: 0,
     utilizationLimitBlockBorrowingAbove: 0,
     hostFixedInterestRateBps: 0,
     borrowLimitOutsideElevationGroup: new BN(0),
     borrowLimitAgainstThisCollateralInElevationGroup: Array(32).fill(new BN(0)),
     reserved1: Array(2).fill(0),
+    reserved2: Array(2).fill(0),
+    reserved3: Array(8).fill(0),
   };
 
   return new ReserveConfig(reserveConfigFields);

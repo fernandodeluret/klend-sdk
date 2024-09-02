@@ -294,10 +294,7 @@ export class KaminoObligation {
    * @param market
    * @param reserve
    */
-  public getLtvForReserve(
-    market: KaminoMarket,
-    reserve: KaminoReserve
-  ): { maxLtv: Decimal; liquidationLtv: Decimal } {
+  public getLtvForReserve(market: KaminoMarket, reserve: KaminoReserve): { maxLtv: Decimal; liquidationLtv: Decimal } {
     return KaminoObligation.getLtvForReserve(market, reserve, this.state.elevationGroup);
   }
 
@@ -773,11 +770,7 @@ export class KaminoObligation {
           `Obligation contains a deposit belonging to reserve: ${deposit.depositReserve} but the reserve was not found on the market. Deposit amount: ${deposit.depositedAmount}`
         );
       }
-      const { maxLtv, liquidationLtv } = KaminoObligation.getLtvForReserve(
-        market,
-        reserve,
-        obligation.elevationGroup
-      );
+      const { maxLtv, liquidationLtv } = KaminoObligation.getLtvForReserve(market, reserve, obligation.elevationGroup);
 
       let exchangeRate: Decimal;
       if (collateralExchangeRates !== null) {

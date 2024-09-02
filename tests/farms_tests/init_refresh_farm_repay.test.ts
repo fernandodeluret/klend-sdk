@@ -51,7 +51,7 @@ describe('init_and_refresh_farm_repay_tests', function () {
       debtReserve.getLiquidityMint(),
       borrower.publicKey,
       new VanillaObligation(PROGRAM_ID),
-      await env.provider.connection.getSlot()
+      await env.connection.getSlot()
     );
 
     await sendTransactionsFromAction(env, repayAction, borrower, [borrower]);
@@ -94,7 +94,7 @@ describe('init_and_refresh_farm_repay_tests', function () {
       debtReserve.getLiquidityMint(),
       borrower.publicKey,
       new VanillaObligation(PROGRAM_ID),
-      await env.provider.connection.getSlot()
+      await env.connection.getSlot()
     );
 
     await sendTransactionsFromAction(env, repayAction, borrower, [borrower]);
@@ -150,7 +150,7 @@ describe('init_and_refresh_farm_repay_tests', function () {
       debtReserve.getLiquidityMint(),
       borrower.publicKey,
       new VanillaObligation(PROGRAM_ID),
-      await env.provider.connection.getSlot()
+      await env.connection.getSlot()
     );
 
     await sendTransactionsFromAction(env, repayAction, borrower, [borrower]);
@@ -206,7 +206,7 @@ describe('init_and_refresh_farm_repay_tests', function () {
       debtReserve.getLiquidityMint(),
       borrower.publicKey,
       new VanillaObligation(PROGRAM_ID),
-      await env.provider.connection.getSlot()
+      await env.connection.getSlot()
     );
 
     await sendTransactionsFromAction(env, repayAction, borrower, [borrower]);
@@ -262,7 +262,7 @@ describe('init_and_refresh_farm_repay_tests', function () {
       debtReserve.getLiquidityMint(),
       borrower.publicKey,
       new VanillaObligation(PROGRAM_ID),
-      await env.provider.connection.getSlot()
+      await env.connection.getSlot()
     );
 
     await sendTransactionsFromAction(env, repayAction, borrower, [borrower]);
@@ -342,7 +342,7 @@ describe('init_and_refresh_farm_repay_tests', function () {
       debtReserve.getLiquidityMint(),
       borrower.publicKey,
       new VanillaObligation(PROGRAM_ID),
-      await env.provider.connection.getSlot(),
+      await env.connection.getSlot(),
       undefined,
       undefined,
       undefined,

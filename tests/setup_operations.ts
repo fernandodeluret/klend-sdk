@@ -32,7 +32,7 @@ import {
 import { buildAndSendTxnWithLogs, buildVersionedTransaction } from '../src/utils';
 import { Env } from './setup_utils';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { ElevationGroupFields, ReserveConfig } from '../src/idl_codegen/types';
+import { ElevationGroupFields, ReserveConfig, UpdateConfigMode } from '../src/idl_codegen/types';
 import { BN } from '@coral-xyz/anchor';
 import { createAddExtraComputeUnitsIx } from '@kamino-finance/kliquidity-sdk';
 
@@ -47,7 +47,7 @@ export async function createMarket(env: Env): Promise<[TransactionSignature, Key
   const createMarketIx = SystemProgram.createAccount({
     fromPubkey: env.admin.publicKey,
     newAccountPubkey: marketAccount.publicKey,
-    lamports: await env.provider.connection.getMinimumBalanceForRentExemption(size),
+    lamports: await env.connection.getMinimumBalanceForRentExemption(size),
     space: size,
     programId: env.program.programId,
   });
@@ -61,9 +61,16 @@ export async function createMarket(env: Env): Promise<[TransactionSignature, Key
   };
 
   const ix = initLendingMarket(args, accounts);
-  const tx = await buildVersionedTransaction(env.provider.connection, env.admin.publicKey, [createMarketIx, ix]);
+  const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, [createMarketIx, ix]);
 
-  const sig = await buildAndSendTxnWithLogs(env.provider.connection, tx, env.admin, [marketAccount]);
+  const sig = await buildAndSendTxnWithLogs(
+    env.connection,
+    tx,
+    env.admin,
+    [marketAccount],
+    undefined,
+    'initLendingMarket'
+  );
   return [sig, marketAccount];
 }
 
@@ -79,7 +86,7 @@ export async function createReserve(
   const createReserveIx = SystemProgram.createAccount({
     fromPubkey: env.admin.publicKey,
     newAccountPubkey: reserveAccount.publicKey,
-    lamports: await env.provider.connection.getMinimumBalanceForRentExemption(size),
+    lamports: await env.connection.getMinimumBalanceForRentExemption(size),
     space: size,
     programId: env.program.programId,
   });
@@ -107,9 +114,9 @@ export async function createReserve(
   };
 
   const ix = initReserve(accounts);
-  const tx = await buildVersionedTransaction(env.provider.connection, env.admin.publicKey, [createReserveIx, ix]);
+  const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, [createReserveIx, ix]);
 
-  const sig = await buildAndSendTxnWithLogs(env.provider.connection, tx, env.admin, [reserveAccount]);
+  const sig = await buildAndSendTxnWithLogs(env.connection, tx, env.admin, [reserveAccount], undefined, 'initReserve');
   return [sig, reserveAccount];
 }
 
@@ -137,9 +144,9 @@ export async function updateReserveSingleValue(
   const budgetIx = createAddExtraComputeUnitsIx(300_000);
   ixs.push(budgetIx);
   ixs.push(updateReserveConfig(args, accounts));
-  const tx = await buildVersionedTransaction(env.provider.connection, env.admin.publicKey, ixs);
+  const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, ixs);
 
-  const sig = await buildAndSendTxnWithLogs(env.provider.connection, tx, env.admin, []);
+  const sig = await buildAndSendTxnWithLogs(env.connection, tx, env.admin, []);
   return sig;
 }
 
@@ -149,7 +156,7 @@ export async function updateReserve(
   config: ReserveConfig
 ): Promise<TransactionSignature> {
   await sleep(2000);
-  const reserveState: Reserve = (await Reserve.fetch(env.provider.connection, reserve))!;
+  const reserveState: Reserve = (await Reserve.fetch(env.connection, reserve))!;
 
   const layout = ReserveConfig.layout();
   const data = Buffer.alloc(1000);
@@ -171,9 +178,46 @@ export async function updateReserve(
   const budgetIx = createAddExtraComputeUnitsIx(300_000);
   ixs.push(budgetIx);
   ixs.push(updateReserveConfig(args, accounts));
-  const tx = await buildVersionedTransaction(env.provider.connection, env.admin.publicKey, ixs);
+  const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, ixs);
 
-  const sig = await buildAndSendTxnWithLogs(env.provider.connection, tx, env.admin, []);
+  const sig = await buildAndSendTxnWithLogs(env.connection, tx, env.admin, [], undefined, 'updateReserve');
+  return sig;
+}
+
+export async function updateReserveElevationGroups(
+  env: Env,
+  reserve: PublicKey,
+  elevationGroups: number[]
+): Promise<TransactionSignature> {
+  await sleep(2000);
+  const reserveState: Reserve = (await Reserve.fetch(env.connection, reserve))!;
+
+  // Array of 20 u8
+  const elevationGroupsData = new Uint8Array(20);
+  for (let i = 0; i < elevationGroups.length; i++) {
+    elevationGroupsData[i] = elevationGroups[i];
+  }
+
+  const args: UpdateReserveConfigArgs = {
+    // TODO: revert the +1 when the enum is updated to be indexed at 0
+    mode: new BN(UpdateConfigMode.UpdateElevationGroup.discriminator + 1),
+    value: elevationGroupsData,
+    skipValidation: false,
+  };
+
+  const accounts: UpdateReserveConfigAccounts = {
+    lendingMarketOwner: env.admin.publicKey,
+    lendingMarket: reserveState.lendingMarket,
+    reserve: reserve,
+  };
+
+  const ixs: TransactionInstruction[] = [];
+  const budgetIx = createAddExtraComputeUnitsIx(300_000);
+  ixs.push(budgetIx);
+  ixs.push(updateReserveConfig(args, accounts));
+  const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, ixs);
+
+  const sig = await buildAndSendTxnWithLogs(env.connection, tx, env.admin, [], undefined, 'updateReserve');
   return sig;
 }
 
@@ -196,21 +240,22 @@ export async function updateLendingMarketConfig(
   };
 
   const ix = updateLendingMarket(args, accounts);
-  const tx = await buildVersionedTransaction(env.provider.connection, env.admin.publicKey, [ix]);
+  const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, [ix]);
 
-  const sig = await buildAndSendTxnWithLogs(env.provider.connection, tx, env.admin, [], false, 'updateLendingMarket');
+  const sig = await buildAndSendTxnWithLogs(env.connection, tx, env.admin, [], false, 'updateLendingMarket');
   return sig;
 }
 
 export async function updateMarketElevationGroup(
   env: Env,
   market: PublicKey,
-  debtReserve: PublicKey
+  debtReserve: PublicKey,
+  elevationGroupConfig?: ElevationGroupFields
 ): Promise<TransactionSignature> {
   await sleep(2000);
-  const marketState: LendingMarket = (await LendingMarket.fetch(env.provider.connection, market))!;
+  const marketState: LendingMarket = (await LendingMarket.fetch(env.connection, market))!;
 
-  const elevationGroup: ElevationGroupFields = {
+  const elevationGroup: ElevationGroupFields = elevationGroupConfig ?? {
     maxLiquidationBonusBps: 100,
     id: 1,
     ltvPct: 90,
@@ -230,7 +275,6 @@ export async function updateMarketElevationGroup(
   buffer.writeUInt8(elevationGroup.allowNewLoans, 5);
   buffer.writeUint8(elevationGroup.maxReservesAsCollateral, 6);
   buffer.writeUint8(elevationGroup.padding0, 7);
-
   const debtReserveBuffer = debtReserve.toBuffer();
   debtReserveBuffer.copy(buffer, 8, 0, 32);
 
@@ -245,9 +289,9 @@ export async function updateMarketElevationGroup(
   };
 
   const ix = updateLendingMarket(args, accounts);
-  const tx = await buildVersionedTransaction(env.provider.connection, env.admin.publicKey, [ix]);
+  const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, [ix]);
 
-  const sig = await buildAndSendTxnWithLogs(env.provider.connection, tx, env.admin, [], false, 'UpdateElevationGroup');
+  const sig = await buildAndSendTxnWithLogs(env.connection, tx, env.admin, [], false, 'UpdateMarketElevationGroup');
   return sig;
 }
 
@@ -257,7 +301,7 @@ export async function updateMarketReferralFeeBps(
   referralFeeBps: number
 ): Promise<TransactionSignature> {
   await sleep(2000);
-  const marketState: LendingMarket = (await LendingMarket.fetch(env.provider.connection, market))!;
+  const marketState: LendingMarket = (await LendingMarket.fetch(env.connection, market))!;
 
   const buffer = Buffer.alloc(VALUE_BYTE_MAX_ARRAY_LEN_MARKET_UPDATE);
   buffer.writeUInt16LE(referralFeeBps, 0);
@@ -273,40 +317,9 @@ export async function updateMarketReferralFeeBps(
   };
 
   const ix = updateLendingMarket(args, accounts);
-  const tx = await buildVersionedTransaction(env.provider.connection, env.admin.publicKey, [ix]);
+  const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, [ix]);
 
-  const sig = await buildAndSendTxnWithLogs(env.provider.connection, tx, env.admin, []);
-  await sleep(2000);
-  return sig;
-}
-
-export async function updateMarketMultiplierPoints(
-  env: Env,
-  market: PublicKey,
-  value: number
-): Promise<TransactionSignature> {
-  await sleep(2000);
-  const marketState: LendingMarket = (await LendingMarket.fetch(env.provider.connection, market))!;
-
-  const buffer = Buffer.alloc(VALUE_BYTE_MAX_ARRAY_LEN_MARKET_UPDATE);
-  for (let i = 0; i < 8; i++) {
-    buffer.writeUInt8(value, i);
-  }
-
-  const args: UpdateLendingMarketArgs = {
-    mode: new BN(11), // UpdateLendingMarketMode.UpdateMultiplierPoints.discriminator,
-    value: [...buffer],
-  };
-
-  const accounts: UpdateLendingMarketAccounts = {
-    lendingMarketOwner: marketState.lendingMarketOwner,
-    lendingMarket: market,
-  };
-
-  const ix = updateLendingMarket(args, accounts);
-  const tx = await buildVersionedTransaction(env.provider.connection, env.admin.publicKey, [ix]);
-
-  const sig = await buildAndSendTxnWithLogs(env.provider.connection, tx, env.admin, []);
+  const sig = await buildAndSendTxnWithLogs(env.connection, tx, env.admin, []);
   await sleep(2000);
   return sig;
 }
@@ -321,7 +334,7 @@ export async function reloadReservesAndRefreshMarket(env: Env, kaminoMarket: Kam
 export async function refreshReserves(env: Env, kaminoMarket: KaminoMarket) {
   const ixns = KaminoAction.getRefreshAllReserves(kaminoMarket, [...kaminoMarket.reserves.keys()]);
 
-  const tx = await buildVersionedTransaction(env.provider.connection, env.admin.publicKey, ixns);
-  const txHash = await buildAndSendTxnWithLogs(env.provider.connection, tx, env.admin, [], false, 'RefreshReserves');
-  await env.provider.connection.confirmTransaction(txHash, 'confirmed');
+  const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, ixns);
+  const txHash = await buildAndSendTxnWithLogs(env.connection, tx, env.admin, [], false, 'RefreshReserves');
+  await env.connection.confirmTransaction(txHash, 'confirmed');
 }

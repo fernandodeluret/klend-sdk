@@ -19,7 +19,7 @@ describe('scope_oracle_tests', function () {
     const jlp = await createMint(env, env.admin.publicKey, 6);
     const [, jlpReserve] = await createReserve(env, lendingMarket.publicKey, jlp);
 
-    const scope = new Scope('localnet', env.provider.connection);
+    const scope = new Scope('localnet', env.connection);
     const [, configAccount] = await scope.getFeedConfiguration({ feed: 'hubble' });
     const reserveConfig = makeReserveConfig('JLP', {
       ...DefaultConfigParams,
@@ -32,7 +32,7 @@ describe('scope_oracle_tests', function () {
     await updateReserve(env, jlpReserve.publicKey, reserveConfig);
 
     const kaminoMarket = (await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -62,7 +62,7 @@ describe('scope_oracle_tests', function () {
     const jlp = await createMint(env, env.admin.publicKey, 6);
     const [, jlpReserve] = await createReserve(env, lendingMarket.publicKey, jlp);
 
-    const scope = new Scope('localnet', env.provider.connection);
+    const scope = new Scope('localnet', env.connection);
     const [, configAccount] = await scope.getFeedConfiguration({ feed: 'hubble' });
     const reserveConfig = makeReserveConfig('JLP', {
       ...DefaultConfigParams,
@@ -75,7 +75,7 @@ describe('scope_oracle_tests', function () {
     await updateReserve(env, jlpReserve.publicKey, reserveConfig);
 
     const kaminoMarket = (await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -105,7 +105,7 @@ describe('scope_oracle_tests', function () {
     const jlp = await createMint(env, env.admin.publicKey, 6);
     const [, jlpReserve] = await createReserve(env, lendingMarket.publicKey, jlp);
 
-    const scope = new Scope('localnet', env.provider.connection);
+    const scope = new Scope('localnet', env.connection);
     const [, configAccount] = await scope.getFeedConfiguration({ feed: 'hubble' });
 
     const reserveConfig = makeReserveConfig('JLP', {
@@ -119,7 +119,7 @@ describe('scope_oracle_tests', function () {
     await updateReserve(env, jlpReserve.publicKey, reserveConfig);
 
     const kaminoMarket = (await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,
@@ -149,7 +149,7 @@ describe('scope_oracle_tests', function () {
     const jitosol = await createMint(env, env.admin.publicKey, 9);
     const [, jitosolReserve] = await createReserve(env, lendingMarket.publicKey, jitosol);
 
-    const scope = new Scope('localnet', env.provider.connection);
+    const scope = new Scope('localnet', env.connection);
     const [, configAccount] = await scope.getFeedConfiguration({ feed: 'hubble' });
 
     const reserveConfig = makeReserveConfig('JITOSOL', {
@@ -163,7 +163,7 @@ describe('scope_oracle_tests', function () {
     await updateReserve(env, jitosolReserve.publicKey, reserveConfig);
 
     const kaminoMarket = (await KaminoMarket.load(
-      env.provider.connection,
+      env.connection,
       lendingMarket.publicKey,
       DEFAULT_RECENT_SLOT_DURATION_MS,
       PROGRAM_ID,

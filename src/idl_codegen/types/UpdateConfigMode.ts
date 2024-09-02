@@ -831,48 +831,48 @@ export class DeleveragingThresholdSlotsPerBps {
   }
 }
 
-export interface UpdateMultiplierSideBoostJSON {
-  kind: "UpdateMultiplierSideBoost"
+export interface DeprecatedUpdateMultiplierSideBoostJSON {
+  kind: "DeprecatedUpdateMultiplierSideBoost"
 }
 
-export class UpdateMultiplierSideBoost {
+export class DeprecatedUpdateMultiplierSideBoost {
   static readonly discriminator = 36
-  static readonly kind = "UpdateMultiplierSideBoost"
+  static readonly kind = "DeprecatedUpdateMultiplierSideBoost"
   readonly discriminator = 36
-  readonly kind = "UpdateMultiplierSideBoost"
+  readonly kind = "DeprecatedUpdateMultiplierSideBoost"
 
-  toJSON(): UpdateMultiplierSideBoostJSON {
+  toJSON(): DeprecatedUpdateMultiplierSideBoostJSON {
     return {
-      kind: "UpdateMultiplierSideBoost",
+      kind: "DeprecatedUpdateMultiplierSideBoost",
     }
   }
 
   toEncodable() {
     return {
-      UpdateMultiplierSideBoost: {},
+      DeprecatedUpdateMultiplierSideBoost: {},
     }
   }
 }
 
-export interface UpdateMultiplierTagBoostJSON {
-  kind: "UpdateMultiplierTagBoost"
+export interface DeprecatedUpdateMultiplierTagBoostJSON {
+  kind: "DeprecatedUpdateMultiplierTagBoost"
 }
 
-export class UpdateMultiplierTagBoost {
+export class DeprecatedUpdateMultiplierTagBoost {
   static readonly discriminator = 37
-  static readonly kind = "UpdateMultiplierTagBoost"
+  static readonly kind = "DeprecatedUpdateMultiplierTagBoost"
   readonly discriminator = 37
-  readonly kind = "UpdateMultiplierTagBoost"
+  readonly kind = "DeprecatedUpdateMultiplierTagBoost"
 
-  toJSON(): UpdateMultiplierTagBoostJSON {
+  toJSON(): DeprecatedUpdateMultiplierTagBoostJSON {
     return {
-      kind: "UpdateMultiplierTagBoost",
+      kind: "DeprecatedUpdateMultiplierTagBoost",
     }
   }
 
   toEncodable() {
     return {
-      UpdateMultiplierTagBoost: {},
+      DeprecatedUpdateMultiplierTagBoost: {},
     }
   }
 }
@@ -1198,11 +1198,11 @@ export function fromDecoded(obj: any): types.UpdateConfigModeKind {
   if ("DeleveragingThresholdSlotsPerBps" in obj) {
     return new DeleveragingThresholdSlotsPerBps()
   }
-  if ("UpdateMultiplierSideBoost" in obj) {
-    return new UpdateMultiplierSideBoost()
+  if ("DeprecatedUpdateMultiplierSideBoost" in obj) {
+    return new DeprecatedUpdateMultiplierSideBoost()
   }
-  if ("UpdateMultiplierTagBoost" in obj) {
-    return new UpdateMultiplierTagBoost()
+  if ("DeprecatedUpdateMultiplierTagBoost" in obj) {
+    return new DeprecatedUpdateMultiplierTagBoost()
   }
   if ("UpdateReserveStatus" in obj) {
     return new UpdateReserveStatus()
@@ -1347,11 +1347,11 @@ export function fromJSON(
     case "DeleveragingThresholdSlotsPerBps": {
       return new DeleveragingThresholdSlotsPerBps()
     }
-    case "UpdateMultiplierSideBoost": {
-      return new UpdateMultiplierSideBoost()
+    case "DeprecatedUpdateMultiplierSideBoost": {
+      return new DeprecatedUpdateMultiplierSideBoost()
     }
-    case "UpdateMultiplierTagBoost": {
-      return new UpdateMultiplierTagBoost()
+    case "DeprecatedUpdateMultiplierTagBoost": {
+      return new DeprecatedUpdateMultiplierTagBoost()
     }
     case "UpdateReserveStatus": {
       return new UpdateReserveStatus()
@@ -1421,8 +1421,8 @@ export function layout(property?: string) {
     borsh.struct([], "UpdateAssetTier"),
     borsh.struct([], "UpdateElevationGroup"),
     borsh.struct([], "DeleveragingThresholdSlotsPerBps"),
-    borsh.struct([], "UpdateMultiplierSideBoost"),
-    borsh.struct([], "UpdateMultiplierTagBoost"),
+    borsh.struct([], "DeprecatedUpdateMultiplierSideBoost"),
+    borsh.struct([], "DeprecatedUpdateMultiplierTagBoost"),
     borsh.struct([], "UpdateReserveStatus"),
     borsh.struct([], "UpdateFarmCollateral"),
     borsh.struct([], "UpdateFarmDebt"),

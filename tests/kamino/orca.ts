@@ -39,7 +39,7 @@ export async function initializeWhirlpool(
     const initializeIx = WhirlpoolInstructions.initializeConfig(initialiseConfigArgs, initialiseConfigAccounts);
     tx.add(initializeIx);
 
-    const sig = await sendTransactionWithLogs(env.provider.connection, tx, env.admin.publicKey, [env.admin, config]);
+    const sig = await sendTransactionWithLogs(env.connection, tx, env.admin.publicKey, [env.admin, config]);
     console.log('InitializeConfig:', sig);
   }
 
@@ -66,7 +66,7 @@ export async function initializeWhirlpool(
     const initializeIx = WhirlpoolInstructions.initializeFeeTier(initialiseFeeTierArgs, initialiseFeeTierAccounts);
     tx.add(initializeIx);
 
-    const sig = await sendTransactionWithLogs(env.provider.connection, tx, env.admin.publicKey, [env.admin]);
+    const sig = await sendTransactionWithLogs(env.connection, tx, env.admin.publicKey, [env.admin]);
     console.log('InitializeFeeTier:', sig);
   }
 
@@ -113,7 +113,7 @@ export async function initializeWhirlpool(
     const initializeIx = WhirlpoolInstructions.initializePool(initialisePoolArgs, initializePoolAccounts);
     tx.add(initializeIx);
 
-    const sig = await sendTransactionWithLogs(env.provider.connection, tx, env.admin.publicKey, [
+    const sig = await sendTransactionWithLogs(env.connection, tx, env.admin.publicKey, [
       env.admin,
       tokenAVault,
       tokenBVault,
@@ -124,7 +124,7 @@ export async function initializeWhirlpool(
   {
     const tx = await initTickArrayForTicks(env.admin, whirlpool, range(-300, 300, 40), tickSize, WHIRLPOOL_PROGRAM_ID);
 
-    const sig = await sendTransactionWithLogs(env.provider.connection, tx, env.admin.publicKey, [env.admin]);
+    const sig = await sendTransactionWithLogs(env.connection, tx, env.admin.publicKey, [env.admin]);
     console.log('InitializeTickArray:', sig);
   }
 
@@ -147,7 +147,7 @@ export async function initializeWhirlpool(
     if (ix2) {
       tx.add(ix2);
     }
-    const sig = await sendTransactionWithLogs(env.provider.connection, tx, env.admin.publicKey, [env.admin]);
+    const sig = await sendTransactionWithLogs(env.connection, tx, env.admin.publicKey, [env.admin]);
     console.log('InitializeTickForOrcaPool:', sig);
   }
 

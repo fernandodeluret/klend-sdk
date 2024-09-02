@@ -101,10 +101,10 @@ export const depositLeverageTestAdapter = async (
 
   userLut = userLookupTable;
   for (const txIxns of txsIxns) {
-    const tx = await buildVersionedTransaction(env.provider.connection, user.publicKey, txIxns);
+    const tx = await buildVersionedTransaction(env.connection, user.publicKey, txIxns);
     tx.sign([user]);
 
-    const _txid = await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'confirmed');
+    const _txid = await sendAndConfirmVersionedTransaction(env.connection, tx, 'confirmed');
     await sleep(2000);
   }
 
@@ -115,7 +115,7 @@ export const depositLeverageTestAdapter = async (
   const currentSlot = await kaminoMarket.getConnection().getSlot();
 
   const { ixns, lookupTablesAddresses, swapInputs } = await getDepositWithLeverageIxns({
-    connection: env.provider.connection,
+    connection: env.connection,
     user: user.publicKey,
     amount: amount,
     selectedTokenMint: selectedTokenMint,
@@ -152,11 +152,11 @@ export const depositLeverageTestAdapter = async (
     lookupTables.push(userLut);
   }
 
-  const tx = await buildVersionedTransaction(env.provider.connection, user.publicKey, ixns, lookupTables);
+  const tx = await buildVersionedTransaction(env.connection, user.publicKey, ixns, lookupTables);
   tx.sign([user]);
   tx.sign([env.admin]);
 
-  const txid = await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'confirmed');
+  const txid = await sendAndConfirmVersionedTransaction(env.connection, tx, 'confirmed');
   return {
     txid,
     collTokenMint,
@@ -215,10 +215,10 @@ export const withdrawLeverageTestAdapter = async (
 
     userLut = userLookupTable;
     for (const txIxns of txsIxns) {
-      const tx = await buildVersionedTransaction(env.provider.connection, user.publicKey, txIxns);
+      const tx = await buildVersionedTransaction(env.connection, user.publicKey, txIxns);
       tx.sign([user]);
 
-      const _txid = await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'confirmed');
+      const _txid = await sendAndConfirmVersionedTransaction(env.connection, tx, 'confirmed');
       await sleep(2000);
     }
   }
@@ -230,7 +230,7 @@ export const withdrawLeverageTestAdapter = async (
   const currentSlot = await kaminoMarket.getConnection().getSlot();
 
   const { ixns, lookupTablesAddresses, swapInputs } = await getWithdrawWithLeverageIxns({
-    connection: env.provider.connection,
+    connection: env.connection,
     budgetAndPriorityFeeIxns: [],
     user: user.publicKey,
     amount,
@@ -269,11 +269,11 @@ export const withdrawLeverageTestAdapter = async (
     lookupTables.push(userLut);
   }
 
-  const tx = await buildVersionedTransaction(env.provider.connection, user.publicKey, ixns, lookupTables);
+  const tx = await buildVersionedTransaction(env.connection, user.publicKey, ixns, lookupTables);
   tx.sign([user]);
   tx.sign([env.admin]);
 
-  const txid = await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'confirmed');
+  const txid = await sendAndConfirmVersionedTransaction(env.connection, tx, 'confirmed');
 
   return {
     txid,
@@ -317,10 +317,10 @@ export const adjustLeverageTestAdapter = async (
 
     userLut = userLookupTable;
     for (const txIxns of txsIxns) {
-      const tx = await buildVersionedTransaction(env.provider.connection, user.publicKey, txIxns);
+      const tx = await buildVersionedTransaction(env.connection, user.publicKey, txIxns);
       tx.sign([user]);
 
-      const _txid = await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'confirmed');
+      const _txid = await sendAndConfirmVersionedTransaction(env.connection, tx, 'confirmed');
       await sleep(2000);
     }
   }
@@ -336,7 +336,7 @@ export const adjustLeverageTestAdapter = async (
   const currentSlot = await kaminoMarket.getConnection().getSlot();
 
   const { ixns, lookupTablesAddresses, swapInputs } = await getAdjustLeverageIxns({
-    connection: env.provider.connection,
+    connection: env.connection,
     budgetAndPriorityFeeIxns: [],
     user: user.publicKey,
     kaminoMarket,
@@ -375,11 +375,11 @@ export const adjustLeverageTestAdapter = async (
     lookupTables.push(userLut);
   }
 
-  const tx = await buildVersionedTransaction(env.provider.connection, user.publicKey, ixns, lookupTables);
+  const tx = await buildVersionedTransaction(env.connection, user.publicKey, ixns, lookupTables);
   tx.sign([user]);
   tx.sign([env.admin]);
 
-  const txid = await sendAndConfirmVersionedTransaction(env.provider.connection, tx, 'confirmed');
+  const txid = await sendAndConfirmVersionedTransaction(env.connection, tx, 'confirmed');
 
   return {
     txid,
