@@ -12,7 +12,12 @@ import * as assert from 'assert';
 import { MultiplyObligation, sleep } from '../src';
 
 import {
+  KaminoAction,
+  PROGRAM_ID,
   U64_MAX,
+  VanillaObligation,
+  buildAndSendTxnWithLogs,
+  buildVersionedTransaction,
   getAdjustLeverageSwapInputs,
   getDepositWithLeverageSwapInputs,
   getWithdrawWithLeverageSwapInputs,
@@ -30,6 +35,7 @@ import { updateReserveSingleValue } from './setup_operations';
 import { UpdateConfigMode } from '../src/idl_codegen/types';
 import { collToLamportsDecimal } from '@kamino-finance/kliquidity-sdk';
 import { fuzzyEq } from '../src/leverage/calcs';
+import { BN } from '@coral-xyz/anchor';
 
 // TODO: test with sol and wrapped sol
 // - [x] test when the one of the tokens is 0 entirely
@@ -2048,5 +2054,83 @@ describe('Leverage SDK tests', function () {
         0.01
       )
     );
+  });
+
+  it('getAllUserObligationsForReserve_test', async function () {
+    const [collToken, debtToken] = ['MSOL', 'USDC'];
+    const depositToken = debtToken;
+
+    console.log('Setting up market ===');
+    const { env, kaminoMarket } = await createMarketWithTwoReservesToppedUp(
+      [collToken, new Decimal(1000.05)],
+      [debtToken, new Decimal(1000.05)]
+    );
+
+    console.log('Creating user ===');
+    const borrower = await newUser(env, kaminoMarket, [
+      [collToken, new Decimal(40)],
+      [debtToken, new Decimal(10)],
+    ]);
+
+    console.log('Depositing with leverage ===');
+    await sleep(2000);
+    await depositLeverageTestAdapter(
+      env,
+      borrower,
+      kaminoMarket,
+      depositToken,
+      collToken,
+      debtToken,
+      new Decimal(5),
+      new Decimal(3),
+      0.01,
+      (a: string, b: string) => getPriceMock(kaminoMarket, a, b)
+    );
+
+    const multiplyObligation = (
+      await kaminoMarket.getUserObligationsByTag(MultiplyObligation.tag, borrower.publicKey)
+    )[0];
+
+    const kaminoAction = await KaminoAction.buildDepositTxns(
+      kaminoMarket,
+      new BN(50),
+      kaminoMarket.getReserveBySymbol(collToken)?.getLiquidityMint()!,
+      borrower.publicKey,
+      new VanillaObligation(PROGRAM_ID)
+    );
+
+    const tx = await buildVersionedTransaction(env.connection, borrower.publicKey, [
+      ...kaminoAction.setupIxs,
+      ...kaminoAction.lendingIxs,
+      ...kaminoAction.cleanupIxs,
+    ]);
+    const _txHash = await buildAndSendTxnWithLogs(env.connection, tx, borrower, []);
+
+    const vanillaObligation = await kaminoMarket.getObligationByWallet(
+      borrower.publicKey,
+      new VanillaObligation(PROGRAM_ID)
+    );
+
+    const obligationsForCollMint = await kaminoMarket.getAllUserObligationsForReserve(
+      borrower.publicKey,
+      kaminoMarket.getReserveBySymbol(collToken)?.address!
+    );
+
+    assert.equal(obligationsForCollMint.length, 2);
+    // assert one of them is multiply and the other one is the vanilla
+    assert.ok(
+      (obligationsForCollMint[0].obligationAddress.equals(vanillaObligation?.obligationAddress!) ||
+        obligationsForCollMint[1].obligationAddress.equals(vanillaObligation?.obligationAddress!)) &&
+        (obligationsForCollMint[0].obligationAddress.equals(multiplyObligation?.obligationAddress!) ||
+          obligationsForCollMint[1].obligationAddress.equals(multiplyObligation?.obligationAddress!))
+    );
+
+    const obligationsForDebtMint = await kaminoMarket.getAllUserObligationsForReserve(
+      borrower.publicKey,
+      kaminoMarket.getReserveBySymbol(debtToken)?.address!
+    );
+
+    assert.equal(obligationsForDebtMint.length, 1);
+    assert.ok(obligationsForDebtMint[0].obligationAddress.equals(multiplyObligation?.obligationAddress!));
   });
 });

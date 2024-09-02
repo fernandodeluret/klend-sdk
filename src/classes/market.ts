@@ -781,6 +781,99 @@ export class KaminoMarket {
     });
   }
 
+  async getAllUserObligationsForReserve(user: PublicKey, reserve: PublicKey): Promise<KaminoObligation[]> {
+    const obligationAddresses: PublicKey[] = [];
+    obligationAddresses.push(new VanillaObligation(this.programId).toPda(this.getAddress(), user));
+    const targetReserve = new PubkeyHashMap<PublicKey, KaminoReserve>(Array.from(this.reserves.entries())).get(reserve);
+    if (!targetReserve) {
+      throw Error('Could not find reserve.');
+    }
+    for (const [key, kaminoReserve] of this.reserves) {
+      if (targetReserve.address.equals(key)) {
+        // skip target reserve
+        continue;
+      }
+      obligationAddresses.push(
+        new MultiplyObligation(
+          targetReserve.getLiquidityMint(),
+          kaminoReserve.getLiquidityMint(),
+          this.programId
+        ).toPda(this.getAddress(), user)
+      );
+      obligationAddresses.push(
+        new MultiplyObligation(
+          kaminoReserve.getLiquidityMint(),
+          targetReserve.getLiquidityMint(),
+          this.programId
+        ).toPda(this.getAddress(), user)
+      );
+      obligationAddresses.push(
+        new LeverageObligation(
+          targetReserve.getLiquidityMint(),
+          kaminoReserve.getLiquidityMint(),
+          this.programId
+        ).toPda(this.getAddress(), user)
+      );
+      obligationAddresses.push(
+        new LeverageObligation(
+          kaminoReserve.getLiquidityMint(),
+          targetReserve.getLiquidityMint(),
+          this.programId
+        ).toPda(this.getAddress(), user)
+      );
+    }
+    const batchSize = 100;
+    const finalObligations: KaminoObligation[] = [];
+    for (let batchStart = 0; batchStart < obligationAddresses.length; batchStart += batchSize) {
+      const obligations = await this.getMultipleObligationsByAddress(
+        obligationAddresses.slice(batchStart, batchStart + batchSize)
+      );
+      obligations.forEach((obligation) => {
+        if (obligation !== null) {
+          for (const deposits of obligation.deposits.keys()) {
+            if (deposits.equals(reserve)) {
+              finalObligations.push(obligation);
+            }
+          }
+          for (const borrows of obligation.borrows.keys()) {
+            if (borrows.equals(reserve)) {
+              finalObligations.push(obligation);
+            }
+          }
+        }
+      });
+    }
+
+    return finalObligations;
+  }
+
+  async getUserVanillaObligation(user: PublicKey): Promise<KaminoObligation> {
+    const vanillaObligationAddress = new VanillaObligation(this.programId).toPda(this.getAddress(), user);
+
+    const obligation = await this.getObligationByAddress(vanillaObligationAddress);
+
+    if (!obligation) {
+      throw new Error('Could not find vanilla obligation.');
+    }
+
+    return obligation;
+  }
+
+  isReserveInObligation(obligation: KaminoObligation, reserve: PublicKey): boolean {
+    for (const deposits of obligation.deposits.keys()) {
+      if (deposits.equals(reserve)) {
+        return true;
+      }
+    }
+    for (const borrows of obligation.borrows.keys()) {
+      if (borrows.equals(reserve)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   async getUserObligationsByTag(tag: number, user: PublicKey): Promise<KaminoObligation[]> {
     const [currentSlot, obligations] = await Promise.all([
       this.connection.getSlot(),

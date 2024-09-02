@@ -214,6 +214,56 @@ async function main() {
       );
     });
 
+  commands
+    .command('get-user-obligation-for-reserve')
+    .option(`--cluster <string>`, 'Custom RPC URL')
+    .option(`--program <string>`, 'Program pubkey')
+    .option(`--lending-market <string>`, 'Lending market to fetch for')
+    .option(`--user <string>`, 'User address to fetch for')
+    .option(`--reserve <string>`, 'Reserve to fetch for')
+    .action(async ({ cluster, program, lendingMarket, user, reserve }) => {
+      const env = await initEnv(cluster);
+      const programId = new PublicKey(program);
+      const marketAddress = new PublicKey(lendingMarket);
+      const kaminoMarket = await KaminoMarket.load(
+        env.provider.connection,
+        marketAddress,
+        DEFAULT_RECENT_SLOT_DURATION_MS,
+        programId
+      );
+
+      const obligations = await kaminoMarket!.getAllUserObligationsForReserve(
+        new PublicKey(user),
+        new PublicKey(reserve)
+      );
+
+      for (const obligation of obligations) {
+        console.log('obligation address: ', obligation.obligationAddress.toString());
+      }
+    });
+
+  commands
+    .command('get-user-vanilla-obligation-for-reserve')
+    .option(`--cluster <string>`, 'Custom RPC URL')
+    .option(`--program <string>`, 'Program pubkey')
+    .option(`--lending-market <string>`, 'Lending market to fetch for')
+    .option(`--user <string>`, 'User address to fetch for')
+    .action(async ({ cluster, program, lendingMarket, user }) => {
+      const env = await initEnv(cluster);
+      const programId = new PublicKey(program);
+      const marketAddress = new PublicKey(lendingMarket);
+      const kaminoMarket = await KaminoMarket.load(
+        env.provider.connection,
+        marketAddress,
+        DEFAULT_RECENT_SLOT_DURATION_MS,
+        programId
+      );
+
+      const obligation = await kaminoMarket!.getUserVanillaObligation(new PublicKey(user));
+
+      console.log('obligation address: ', obligation ? obligation?.obligationAddress.toString() : 'null');
+    });
+
   await commands.parseAsync();
 }
 

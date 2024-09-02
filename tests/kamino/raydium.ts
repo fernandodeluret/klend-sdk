@@ -87,7 +87,9 @@ export async function initializeRaydiumPool(
       tokenVault0: tokenAVault,
       tokenVault1: tokenBVault,
       observationState: observation,
-      tokenProgram: TOKEN_PROGRAM_ID,
+      tickArrayBitmap: TOKEN_PROGRAM_ID,
+      tokenProgram0: TOKEN_PROGRAM_ID,
+      tokenProgram1: TOKEN_PROGRAM_ID,
       systemProgram: anchor.web3.SystemProgram.programId,
       rent: anchor.web3.SYSVAR_RENT_PUBKEY,
     };

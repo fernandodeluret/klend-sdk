@@ -83,3 +83,45 @@ $ cp ../kamino-lending/target/deploy/kamino_lending.so deps/programs/kamino_lend
 $ cp ../kamino-lending/target/idl/kamino_lending.json src/idl.json
 $ yarn codegen
 ```
+
+### Getting a vanilla obligation for a user
+```ts
+  const kaminoMarket = await KaminoMarket.load(env.provider.connection, marketAddress, DEFAULT_RECENT_SLOT_DURATION_MS, programId);
+
+  const obligation = await kaminoMarket!.getUserVanillaObligation(user);
+
+  // to check the reserve is used in the obligation
+  const isReservePartOfObligation = kaminoMarket!.isReserveInObligation(obligation, reserve);
+```
+
+### Getting a list of user obligations for a specific reserve 
+```ts
+  const kaminoMarket = await KaminoMarket.load(env.provider.connection, marketAddress, DEFAULT_RECENT_SLOT_DURATION_MS, programId);
+
+  const obligations = await kaminoMarket!.getAllUserObligationsForReserve(user, reserve);
+```
+
+### Getting a list of user obligations for a specific reserve with caching
+1. Fetch all user obligations, this should be cached as it takes longer to fetch
+```ts
+  const kaminoMarket = await KaminoMarket.load(env.provider.connection, marketAddress, DEFAULT_RECENT_SLOT_DURATION_MS, programId); 
+
+  const allUserObligations = await kaminoMarket!.getAllUserObligations(user);
+```
+
+```ts 
+  allUserObligations.forEach(obligation  => {
+    if (obligation !== null) {
+      for (const deposits of obligation.deposits.keys()) {
+        if (deposits.equals(reserve)) {
+          finalObligations.push(obligation);
+        }
+      }
+      for (const borrows of obligation.borrows.keys()) {
+        if (borrows.equals(reserve)) {
+          finalObligations.push(obligation);
+        }
+      }
+    }
+  });
+```
