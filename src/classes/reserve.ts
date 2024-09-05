@@ -27,7 +27,7 @@ import { calculateAPYFromAPR, getBorrowRate, lamportsToNumberDecimal, parseToken
 import { Fraction } from './fraction';
 import BN from 'bn.js';
 import { ActionType } from './action';
-import { KaminoMarket } from './market';
+import { BorrowCapsAndCounters, ElevationGroupDescription, KaminoMarket } from './market';
 import {
   initReserve,
   InitReserveAccounts,
@@ -97,14 +97,14 @@ export class KaminoReserve {
   }
 
   /**
-   * @returns the total borrowed amount of the reserve
+   * @returns the total borrowed amount of the reserve in lamports
    */
   getBorrowedAmount(): Decimal {
     return new Fraction(this.state.liquidity.borrowedAmountSf).toDecimal();
   }
 
   /**
-   * @returns the available liquidity amount of the reserve
+   * @returns the available liquidity amount of the reserve in lamports
    */
   getLiquidityAvailableAmount(): Decimal {
     return new Decimal(this.state.liquidity.availableAmount.toString());
@@ -917,6 +917,117 @@ export class KaminoReserve {
     const thirdTerm = basePow3.mul(exp).mul(expMinus1).mul(expMinus2).div(6);
 
     return new Decimal(1).add(firstTerm).add(secondTerm).add(thirdTerm);
+  }
+
+  getBorrowCapForReserve(market: KaminoMarket): BorrowCapsAndCounters {
+    // Utilization cap
+    const utilizationCap = this.state.config.utilizationLimitBlockBorrowingAbove;
+    const utilizationCurrentValue = this.calculateUtilizationRatio();
+
+    // Daily borrow cap
+    const withdrawalCap = this.state.config.debtWithdrawalCap;
+
+    // Debt against collaterals in elevation groups
+    const debtAgainstCollateralReserveCaps: {
+      collateralReserve: PublicKey;
+      elevationGroup: number;
+      maxDebt: Decimal;
+      currentValue: Decimal;
+    }[] = market
+      .getMarketElevationGroupDescriptions()
+      .filter((x) => x.debtReserve === this.address.toString())
+      .map((elevationGroupDescription: ElevationGroupDescription) =>
+        elevationGroupDescription.collateralReserves.map((collateralReserveAddress) => {
+          const collRes = market.reserves.get(new PublicKey(collateralReserveAddress))!;
+
+          const debtLimitAgainstThisCollInGroup =
+            collRes.state.config.borrowLimitAgainstThisCollateralInElevationGroup[
+              elevationGroupDescription.elevationGroup - 1
+            ].toString();
+
+          const debtCounterAgainstThisCollInGroup =
+            collRes.state.borrowedAmountsAgainstThisReserveInElevationGroups[
+              elevationGroupDescription.elevationGroup - 1
+            ].toString();
+
+          return {
+            collateralReserve: collRes.address,
+            elevationGroup: elevationGroupDescription.elevationGroup,
+            maxDebt: new Decimal(debtLimitAgainstThisCollInGroup),
+            currentValue: new Decimal(debtCounterAgainstThisCollInGroup),
+          };
+        })
+      )
+      .flat();
+
+    const caps: BorrowCapsAndCounters = {
+      // Utilization cap
+      utilizationCap: new Decimal(utilizationCap > 0 ? utilizationCap : 100),
+      utilizationCurrentValue: new Decimal(utilizationCurrentValue),
+
+      // Daily borrow cap
+      netWithdrawalCap: new Decimal(withdrawalCap.configCapacity.toString()),
+      netWithdrawalCurrentValue: new Decimal(withdrawalCap.currentTotal.toString()),
+      netWithdrawalLastUpdateTs: new Decimal(withdrawalCap.lastIntervalStartTimestamp.toString()),
+      netWithdrawalIntervalDurationSeconds: new Decimal(withdrawalCap.configIntervalLengthSeconds.toString()),
+
+      // Global cap
+      globalDebtCap: new Decimal(this.state.config.borrowLimit.toString()),
+      globalTotalBorrowed: this.getBorrowedAmount(),
+
+      // Debt outside emode cap
+      debtOutsideEmodeCap: new Decimal(this.state.config.borrowLimitOutsideElevationGroup.toString()),
+      borrowedOutsideEmode: this.getBorrowedAmountOutsideElevationGroup(),
+
+      debtAgainstCollateralReserveCaps: debtAgainstCollateralReserveCaps,
+    };
+
+    return caps;
+  }
+
+  /* This takes into account all the caps */
+  getLiquidityAvailableForDebtReserveGivenCaps(market: KaminoMarket, elevationGroups: number[]): Decimal[] {
+    const caps = this.getBorrowCapForReserve(market);
+
+    const liquidityAvailable = this.getLiquidityAvailableAmount();
+
+    // Cap this to utilization cap first
+    const utilizationRatioLimit = caps.utilizationCap.div(100);
+    const currentUtilizationRatio = this.calculateUtilizationRatio();
+
+    const liquidityGivenUtilizationCap = this.getTotalSupply().mul(
+      utilizationRatioLimit.minus(currentUtilizationRatio)
+    );
+
+    const remainingDailyCap = caps.netWithdrawalCap.minus(caps.netWithdrawalCurrentValue);
+    const remainingGlobalCap = caps.globalDebtCap.minus(caps.globalTotalBorrowed);
+    const remainingOutsideEmodeCap = caps.debtOutsideEmodeCap.minus(caps.borrowedOutsideEmode);
+    const availableInCrossMode = Decimal.min(
+      liquidityAvailable,
+      liquidityGivenUtilizationCap,
+      remainingDailyCap,
+      remainingGlobalCap,
+      remainingOutsideEmodeCap
+    );
+
+    const availableInElevationGroups = elevationGroups
+      .filter((x) => x !== 0)
+      .map((elevationGroup) => {
+        const capsForElevationGroup = caps.debtAgainstCollateralReserveCaps.filter(
+          (x) => x.elevationGroup === elevationGroup
+        );
+        const liquidityAvailableInElevationGroup = Decimal.min(
+          ...capsForElevationGroup.map((x) => x.maxDebt.minus(x.currentValue))
+        );
+        return Decimal.min(
+          liquidityAvailableInElevationGroup,
+          remainingDailyCap,
+          remainingGlobalCap,
+          liquidityGivenUtilizationCap
+        );
+      });
+
+    return [availableInCrossMode, ...availableInElevationGroups];
   }
 }
 
@@ -1788,6 +1899,7 @@ export function updateReserveConfigEncodedValue(
     case UpdateConfigMode.DeleveragingMarginCallPeriod.discriminator:
     case UpdateConfigMode.UpdateBorrowFactor.discriminator:
     case UpdateConfigMode.DeleveragingThresholdSlotsPerBps.discriminator:
+    case UpdateConfigMode.UpdateBorrowLimitOutsideElevationGroup.discriminator:
       value = value as number;
       buffer = Buffer.alloc(8);
       buffer.writeBigUint64LE(BigInt(value), 0);
@@ -1830,6 +1942,13 @@ export function updateReserveConfigEncodedValue(
       buffer = Buffer.alloc(20);
       for (let i = 0; i < valueArray.length; i++) {
         buffer.writeUIntLE(valueArray[i], i, 1);
+      }
+      break;
+    case UpdateConfigMode.UpdateBorrowLimitsInElevationGroupAgainstThisReserve.discriminator:
+      valueArray = value as number[];
+      buffer = Buffer.alloc(32 * 8);
+      for (let i = 0; i < valueArray.length; i++) {
+        buffer.writeBigUint64LE(BigInt(valueArray[i]), i * 8);
       }
       break;
     default:

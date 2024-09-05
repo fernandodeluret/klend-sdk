@@ -28,6 +28,7 @@ import {
   updateReserveConfig,
   UpdateReserveConfigAccounts,
   UpdateReserveConfigArgs,
+  updateReserveConfigEncodedValue,
 } from '../src';
 import { buildAndSendTxnWithLogs, buildVersionedTransaction } from '../src/utils';
 import { Env } from './setup_utils';
@@ -222,6 +223,93 @@ export async function updateReserveElevationGroups(
 }
 
 export const VALUE_BYTE_MAX_ARRAY_LEN_MARKET_UPDATE = 72;
+
+export async function updateReserveBorrowLimit(
+  env: Env,
+  market: KaminoMarket,
+  reserveAddress: PublicKey,
+  borrowLimit: number
+): Promise<TransactionSignature> {
+  // TODO: revert the +1 when the enum is updated to be indexed at 0
+  const mode = UpdateConfigMode.UpdateBorrowLimit.discriminator + 1;
+  const value = updateReserveConfigEncodedValue(UpdateConfigMode.UpdateBorrowLimit.discriminator, borrowLimit);
+
+  return updateReserveConfigSingle(env, market, reserveAddress, mode, value);
+}
+
+export async function updateReserveBorrowLimitOutsideEmode(
+  env: Env,
+  market: KaminoMarket,
+  reserveAddress: PublicKey,
+  borrowLimit: number
+): Promise<TransactionSignature> {
+  // TODO: revert the +1 when the enum is updated to be indexed at 0
+  const mode = UpdateConfigMode.UpdateBorrowLimitOutsideElevationGroup.discriminator + 1;
+  const value = updateReserveConfigEncodedValue(
+    UpdateConfigMode.UpdateBorrowLimitOutsideElevationGroup.discriminator,
+    borrowLimit
+  );
+
+  return updateReserveConfigSingle(env, market, reserveAddress, mode, value);
+}
+
+export async function updateReserveUtilizationCap(
+  env: Env,
+  market: KaminoMarket,
+  reserveAddress: PublicKey,
+  cap: number
+): Promise<TransactionSignature> {
+  // TODO: revert the +1 when the enum is updated to be indexed at 0
+  const mode = UpdateConfigMode.UpdateBlockBorrowingAboveUtilization.discriminator + 1;
+  const value = updateReserveConfigEncodedValue(
+    UpdateConfigMode.UpdateBlockBorrowingAboveUtilization.discriminator,
+    cap
+  );
+
+  return updateReserveConfigSingle(env, market, reserveAddress, mode, value);
+}
+
+export async function updateReserveBorrowLimitsAgainstCollInElevationGroup(
+  env: Env,
+  market: KaminoMarket,
+  reserveAddress: PublicKey,
+  limits: number[]
+): Promise<TransactionSignature> {
+  // TODO: revert the +1 when the enum is updated to be indexed at 0
+  const mode = UpdateConfigMode.UpdateBorrowLimitsInElevationGroupAgainstThisReserve.discriminator + 1;
+  const value = updateReserveConfigEncodedValue(
+    UpdateConfigMode.UpdateBorrowLimitsInElevationGroupAgainstThisReserve.discriminator,
+    limits
+  );
+
+  return updateReserveConfigSingle(env, market, reserveAddress, mode, value);
+}
+
+export async function updateReserveConfigSingle(
+  env: Env,
+  market: KaminoMarket,
+  reserveAddress: PublicKey,
+  modeDiscriminator: number,
+  value: Uint8Array
+): Promise<TransactionSignature> {
+  const args: UpdateReserveConfigArgs = {
+    mode: new anchor.BN(modeDiscriminator),
+    value: value,
+    skipValidation: false,
+  };
+
+  const accounts: UpdateReserveConfigAccounts = {
+    lendingMarketOwner: market.state.lendingMarketOwner,
+    lendingMarket: new PublicKey(market.address),
+    reserve: reserveAddress,
+  };
+
+  const ix = updateReserveConfig(args, accounts, env.program.programId);
+  const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, [ix]);
+
+  const sig = await buildAndSendTxnWithLogs(env.connection, tx, env.admin, [], false, 'updateReserveConfigSingle');
+  return sig;
+}
 
 export async function updateLendingMarketConfig(
   env: Env,

@@ -1,33 +1,23 @@
-// Functions necessary:
-// Scenario 0:
-// - getMaxAllowedDeposit(reserve)
-//     - takes into account net daily deposit caps
-//     - takes into account global deposit cap
-
-// Scenario 1:
-// - getEmodesForReservesCombination(collateralReserves[], debtReserves[]): number[]
-//     - debt reserves can be empty or just one or even more
-//     - return error if collateralReserves[] is empty
-
-// - getLiquidityAvailable(reserve, emodes: []): number[]
-//     - how much can be borrowed (regardless of an obligation) for given emodes, which can be [0], [0, 1], [1], etc
-//     - takes into account
-//         - global debt cap
-//         - max_debt_outside_emode & current_debt_outside_emode debt cap
-//         - or max_debt_against_collateral_in_emode & current_debt_against_collateral_in_emode
-//         - net daily withdrawal caps (for debt)
-
-// - getMaxBorrowableForLoanAndReserve(obligation, debt_reserve, emode: number): number
-//     - returns max amount borrowable given:
-//         - max borrow power for this obligation given the emode and loan stats (current collateral, current debt)
-//         - if loan is in a diff emode, it checks if the loan can be migrated, aka there is enough liquicity to migrate the debt
-
-// - isLoanEligibleForEmode(obligation, emode: 0 | number): <boolean, ErrorMessage>
-//     - essentially checks if a loan can be migrated or not
-//     - due to caps, LTV, etc
-
+// Tests
+// - [ ] deposit and switch elevation group back and forth - with no debt, with debt
+// - [ ] borrow and switch elevation group back and forth - with no debt, with debt
+// - [ ] test isLoanEligibleForElevationGroup()
+// - [ ] test getElevationGroupsForObligation()
+// - [ ] test getBorrowCapForReserve() -> BorrowCapsAndCounters is correctly calculated
+// - [ ] test getLiquidityAvailableForDebtReserveGivenCaps()
+// - [ ] test getBorrowPower()
+// - [ ] test getMaxBorrowAmountV2()
+// - TODO: remove all the toString()
 import { assert } from 'chai';
-import { createMarket, updateMarketElevationGroup, updateReserveElevationGroups } from './setup_operations';
+import {
+  createMarket,
+  updateMarketElevationGroup,
+  updateReserveBorrowLimit,
+  updateReserveBorrowLimitOutsideEmode,
+  updateReserveBorrowLimitsAgainstCollInElevationGroup,
+  updateReserveElevationGroups,
+  updateReserveUtilizationCap,
+} from './setup_operations';
 import {
   addReserveToMarket,
   balances,
@@ -353,16 +343,104 @@ describe('isolated_and_cross_modes', () => {
     await deposit(env, kaminoMarket, user, 'SOL', new Decimal(1), new VanillaObligation(PROGRAM_ID));
     await sleep(2000);
 
+    const slot = await env.connection.getSlot();
+
     const obligation = (await kaminoMarket.getObligationByWallet(user.publicKey, new VanillaObligation(PROGRAM_ID)))!;
 
-    const eligibleGroups = await kaminoMarket.getElevationGroupsForObligation(obligation);
+    const eligibleGroups = await obligation.getElevationGroupsForObligation(kaminoMarket);
     assert.equal(eligibleGroups.length, 2);
     console.log('Eligible Groups', eligibleGroups);
 
-    assert.equal(kaminoMarket.isLoanEligibleForElevationGroup(obligation, jitosolSolGroupNo), false);
-    assert.equal(kaminoMarket.isLoanEligibleForElevationGroup(obligation, solPyusdGroupNo), true);
-    assert.equal(kaminoMarket.isLoanEligibleForElevationGroup(obligation, pyusdUsdcGroupNo), false);
-    assert.equal(kaminoMarket.isLoanEligibleForElevationGroup(obligation, solUsdcGroupNo), true);
-    assert.equal(kaminoMarket.isLoanEligibleForElevationGroup(obligation, defaultElevationGroupNo), true);
+    assert.equal(obligation.isLoanEligibleForElevationGroup(kaminoMarket, slot, jitosolSolGroupNo), false);
+    assert.equal(obligation.isLoanEligibleForElevationGroup(kaminoMarket, slot, solPyusdGroupNo), true);
+    assert.equal(obligation.isLoanEligibleForElevationGroup(kaminoMarket, slot, pyusdUsdcGroupNo), false);
+    assert.equal(obligation.isLoanEligibleForElevationGroup(kaminoMarket, slot, solUsdcGroupNo), true);
+    assert.equal(obligation.isLoanEligibleForElevationGroup(kaminoMarket, slot, defaultElevationGroupNo), true);
+  });
+
+  it('borrow caps', async () => {
+    const env = await initEnv('localnet');
+    const [, market] = await createMarket(env);
+    const kaminoMarket = (await KaminoMarket.load(
+      env.connection,
+      market.publicKey,
+      DEFAULT_RECENT_SLOT_DURATION_MS,
+      PROGRAM_ID,
+      true
+    ))!;
+
+    await createScopeFeed(env, kaminoMarket.scope);
+    await sleep(2000);
+
+    // Create group between SOL and JITOSOL, with SOL debt
+    // Create group between SOL and PyUSD, with PyUSD debt
+    // Create group between USDC and PyUSD, with USDC debt
+
+    const res = await Promise.all([
+      addReserveToMarket(env, market, 'SOL'),
+      addReserveToMarket(env, market, 'JITOSOL'),
+      addReserveToMarket(env, market, 'USDC'),
+      addReserveToMarket(env, market, 'PYUSD'),
+    ]);
+
+    const { reserve: solReservePk } = res[0];
+    const { reserve: jitosolReservePk } = res[1];
+    const { reserve: usdcReservePk } = res[2];
+    const { reserve: pyusdReservePk } = res[3];
+
+    // const defaultElevationGroupNo = 0;
+    const jitosolSolGroupNo = 1;
+    const solPyusdGroupNo = 2;
+    const pyusdUsdcGroupNo = 3;
+    const solUsdcGroupNo = 4;
+
+    const jitosolSolGroup = makeElevationGroupConfig(solReservePk, jitosolSolGroupNo); // JITOSOL collateral, SOL debt,
+    const solPyusdGroup = makeElevationGroupConfig(pyusdReservePk, solPyusdGroupNo); // SOL collateral, PyUSD debt,
+    const pyusdUsdcGroup = makeElevationGroupConfig(usdcReservePk, pyusdUsdcGroupNo); // PyUSD collateral, USDC debt,
+    const solUsdcGroup = makeElevationGroupConfig(usdcReservePk, solUsdcGroupNo); // SOL collateral, USDC debt,
+
+    console.log('solReservePk', solReservePk.toString());
+    console.log('usdcReservePk', usdcReservePk.toString());
+    console.log('jitosolReservePk', jitosolReservePk.toString());
+    console.log('pyusdReservePk', pyusdReservePk.toString());
+
+    await Promise.all([
+      updateMarketElevationGroup(env, market.publicKey, solReservePk, jitosolSolGroup),
+      updateMarketElevationGroup(env, market.publicKey, pyusdReservePk, solPyusdGroup),
+      updateMarketElevationGroup(env, market.publicKey, usdcReservePk, pyusdUsdcGroup),
+      updateMarketElevationGroup(env, market.publicKey, usdcReservePk, solUsdcGroup),
+    ]);
+
+    await Promise.all([
+      updateReserveElevationGroups(env, solReservePk, [jitosolSolGroupNo, solPyusdGroupNo, solUsdcGroupNo]),
+      updateReserveElevationGroups(env, jitosolReservePk, [jitosolSolGroupNo]),
+      updateReserveElevationGroups(env, usdcReservePk, [pyusdUsdcGroupNo, solUsdcGroupNo]),
+      updateReserveElevationGroups(env, pyusdReservePk, [solPyusdGroupNo, pyusdUsdcGroupNo]),
+    ]);
+
+    await updateReserveBorrowLimit(env, kaminoMarket, solReservePk, 2000);
+    await updateReserveBorrowLimitOutsideEmode(env, kaminoMarket, solReservePk, 1500);
+    await updateReserveUtilizationCap(env, kaminoMarket, solReservePk, 80);
+    await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [500]);
+
+    await sleep(2000);
+    await kaminoMarket.reload();
+
+    const user = await newUser(env, kaminoMarket, [
+      ['SOL', new Decimal(10)],
+      ['JITOSOL', new Decimal(10)],
+      ['USDC', new Decimal(10)],
+      ['PYUSD', new Decimal(10)],
+    ]);
+
+    await sleep(2000);
+
+    await deposit(env, kaminoMarket, user, 'SOL', new Decimal(1), new VanillaObligation(PROGRAM_ID));
+    await sleep(2000);
+
+    const solReserve = kaminoMarket.getReserveByAddress(solReservePk);
+    const borrowCaps = await solReserve!.getBorrowCapForReserve(kaminoMarket);
+
+    console.log('Borrow Caps', borrowCaps);
   });
 });

@@ -1198,33 +1198,6 @@ export class KaminoMarket {
     return this.recentSlotDurationMs;
   }
 
-  /* Returns true if the loan is eligible for the elevation group, including for the default one */
-  isLoanEligibleForElevationGroup(obligation: KaminoObligation, elevationGroup: number): boolean {
-    if (elevationGroup === 0) {
-      return true;
-    }
-
-    const reserveDeposits: string[] = Array.from(obligation.deposits.keys()).map((x) => x.toString());
-    const reserveBorrows: string[] = Array.from(obligation.borrows.keys()).map((x) => x.toString());
-
-    if (reserveBorrows.length > 1) {
-      return false;
-    }
-
-    const allElevationGroups = this.getMarketElevationGroupDescriptions();
-    const elevationGroupDescription = allElevationGroups[elevationGroup - 1];
-
-    // Has to be a subset
-    const allCollsIncluded = reserveDeposits.every((reserve) =>
-      elevationGroupDescription.collateralReserves.includes(reserve)
-    );
-    const allDebtsIncluded =
-      reserveBorrows.length === 0 ||
-      (reserveBorrows.length === 1 && elevationGroupDescription.debtReserve === reserveBorrows[0]);
-
-    return allCollsIncluded && allDebtsIncluded;
-  }
-
   /* Returns all elevation groups except the default one  */
   getMarketElevationGroupDescriptions(): ElevationGroupDescription[] {
     const elevationGroups: ElevationGroupDescription[] = [];
@@ -1301,22 +1274,35 @@ export class KaminoMarket {
       );
     });
   }
-
-  /* Returns all elevation groups for a given obligation, except the default one */
-  getElevationGroupsForObligation(obligation: KaminoObligation): ElevationGroupDescription[] {
-    if (obligation.borrows.size > 1) {
-      return [];
-    }
-
-    const collReserves = Array.from(obligation.deposits.keys());
-    if (obligation.borrows.size === 0) {
-      return this.getElevationGroupsForReservesCombination(collReserves);
-    } else {
-      const debtReserve = Array.from(obligation.borrows.keys())[0];
-      return this.getElevationGroupsForReservesCombination(collReserves, debtReserve);
-    }
-  }
 }
+
+export type BorrowCapsAndCounters = {
+  // Utilization cap
+  utilizationCap: Decimal;
+  utilizationCurrentValue: Decimal;
+
+  // Daily borrow cap
+  netWithdrawalCap: Decimal;
+  netWithdrawalCurrentValue: Decimal;
+  netWithdrawalLastUpdateTs: Decimal;
+  netWithdrawalIntervalDurationSeconds: Decimal;
+
+  // Global cap
+  globalDebtCap: Decimal;
+  globalTotalBorrowed: Decimal;
+
+  // Debt outside emode cap
+  debtOutsideEmodeCap: Decimal;
+  borrowedOutsideEmode: Decimal;
+
+  // Debt against collateral caps
+  debtAgainstCollateralReserveCaps: {
+    collateralReserve: PublicKey;
+    elevationGroup: number;
+    maxDebt: Decimal;
+    currentValue: Decimal;
+  }[];
+};
 
 export type ElevationGroupDescription = {
   collateralReserves: string[];

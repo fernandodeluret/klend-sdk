@@ -3,7 +3,7 @@ import { PublicKey } from '@solana/web3.js';
 import Decimal from 'decimal.js';
 import { KaminoReserve } from './reserve';
 import { Obligation } from '../idl_codegen/accounts';
-import { KaminoMarket } from './market';
+import { ElevationGroupDescription, KaminoMarket } from './market';
 import BN from 'bn.js';
 import { Fraction } from './fraction';
 import { ObligationCollateral, ObligationLiquidity } from '../idl_codegen/types';
@@ -684,7 +684,13 @@ export class KaminoObligation {
     liquidationLtv: Decimal;
     borrowLiquidationLimit: Decimal;
   } {
-    return KaminoObligation.calculateObligationDeposits(market, obligation, collateralExchangeRates, getPx);
+    return KaminoObligation.calculateObligationDeposits(
+      market,
+      obligation,
+      collateralExchangeRates,
+      obligation.elevationGroup,
+      getPx
+    );
   }
 
   private calculateBorrows(
@@ -693,7 +699,13 @@ export class KaminoObligation {
     cumulativeBorrowRates: Map<PublicKey, Decimal>,
     getPx: (reserve: KaminoReserve) => Decimal
   ): BorrowStats {
-    return KaminoObligation.calculateObligationBorrows(market, obligation, cumulativeBorrowRates, getPx);
+    return KaminoObligation.calculateObligationBorrows(
+      market,
+      obligation,
+      cumulativeBorrowRates,
+      obligation.elevationGroup,
+      getPx
+    );
   }
 
   private calculatePositions(
@@ -744,6 +756,7 @@ export class KaminoObligation {
     market: KaminoMarket,
     obligation: Obligation,
     collateralExchangeRates: Map<PublicKey, Decimal> | null,
+    elevationGroup: number,
     getPx: (reserve: KaminoReserve) => Decimal
   ): {
     deposits: Map<PublicKey, Position>;
@@ -770,7 +783,7 @@ export class KaminoObligation {
           `Obligation contains a deposit belonging to reserve: ${deposit.depositReserve} but the reserve was not found on the market. Deposit amount: ${deposit.depositedAmount}`
         );
       }
-      const { maxLtv, liquidationLtv } = KaminoObligation.getLtvForReserve(market, reserve, obligation.elevationGroup);
+      const { maxLtv, liquidationLtv } = KaminoObligation.getLtvForReserve(market, reserve, elevationGroup);
 
       let exchangeRate: Decimal;
       if (collateralExchangeRates !== null) {
@@ -814,6 +827,7 @@ export class KaminoObligation {
     market: KaminoMarket,
     obligation: Obligation,
     cumulativeBorrowRates: Map<PublicKey, Decimal> | null,
+    elevationGroup: number,
     getPx: (reserve: KaminoReserve) => Decimal
   ): BorrowStats {
     let userTotalBorrow = new Decimal(0);
@@ -849,7 +863,7 @@ export class KaminoObligation {
 
       const borrowValueUsd = borrowAmount.mul(getPx(reserve)).dividedBy(reserve.getMintFactor());
 
-      const borrowFactor = KaminoObligation.getBorrowFactorForReserve(reserve, obligation.elevationGroup);
+      const borrowFactor = KaminoObligation.getBorrowFactorForReserve(reserve, elevationGroup);
       const borrowValueBorrowFactorAdjustedUsd = borrowValueUsd.mul(borrowFactor);
 
       if (!borrowAmount.eq(new Decimal('0'))) {
@@ -878,13 +892,205 @@ export class KaminoObligation {
     };
   }
 
+  /* 
+    How much of a given token can a user borrow extra given an elevation group, 
+    regardless of caps and liquidity or assuming infinite liquidity and infinite caps,
+    until it hits max LTV.
+
+    This is purely a function about the borrow power of an obligation, 
+    not a reserve-specific, caps-specific, liquidity-specific function.
+
+    * @param market - The KaminoMarket instance.
+    * @param liquidityMint - The liquidity mint PublicKey.
+    * @param slot - The slot number.
+    * @param elevationGroup - The elevation group number (default: this.state.elevationGroup).
+    * @returns The borrow power as a Decimal.
+    * @throws Error if the reserve is not found.
+  */
+  getBorrowPower(
+    market: KaminoMarket,
+    liquidityMint: PublicKey,
+    slot: number,
+    elevationGroup: number = this.state.elevationGroup
+  ): Decimal {
+    const reserve = market.getReserveByMint(liquidityMint);
+    if (!reserve) {
+      throw new Error('Reserve not found');
+    }
+
+    const elevationGroupActivated =
+      reserve.state.config.elevationGroups.includes(elevationGroup) && elevationGroup !== 0;
+
+    const borrowFactor = KaminoObligation.getBorrowFactorForReserve(reserve, elevationGroup);
+
+    const getOraclePx = (reserve: KaminoReserve) => reserve.getOracleMarketPrice();
+    const { collateralExchangeRates, cumulativeBorrowRates } = KaminoObligation.getRatesForObligation(
+      market,
+      this.state,
+      slot
+    );
+
+    const { borrowLimit } = KaminoObligation.calculateObligationDeposits(
+      market,
+      this.state,
+      collateralExchangeRates,
+      elevationGroup,
+      getOraclePx
+    );
+
+    const { userTotalBorrowBorrowFactorAdjusted } = KaminoObligation.calculateObligationBorrows(
+      market,
+      this.state,
+      cumulativeBorrowRates,
+      elevationGroup,
+      getOraclePx
+    );
+
+    const maxObligationBorrowPower = borrowLimit // adjusted available amount
+      .minus(userTotalBorrowBorrowFactorAdjusted)
+      .div(borrowFactor)
+      .div(reserve.getOracleMarketPrice())
+      .mul(reserve.getMintFactor());
+
+    // If it has any collateral outside emode, then return 0
+    for (const [_, value] of this.deposits.entries()) {
+      const depositReserve = market.getReserveByAddress(value.reserveAddress);
+      if (!depositReserve) {
+        throw new Error('Reserve not found');
+      }
+      if (depositReserve.state.config.disableUsageAsCollOutsideEmode && !elevationGroupActivated) {
+        return new Decimal(0);
+      }
+    }
+
+    // This is not amazing because it assumes max borrow, which is not true
+    let originationFeeRate = reserve.getBorrowFee();
+
+    // Inclusive fee rate
+    originationFeeRate = originationFeeRate.div(originationFeeRate.add(new Decimal(1)));
+    const borrowFee = maxObligationBorrowPower.mul(originationFeeRate);
+
+    const maxBorrowAmount = maxObligationBorrowPower.sub(borrowFee);
+
+    return Decimal.max(new Decimal(0), maxBorrowAmount);
+  }
+
+  /* 
+    How much of a given token can a user borrow extra given an elevation group,
+    and a specific reserve, until it hits max LTV and given available liquidity and caps.
+
+    * @param market - The KaminoMarket instance.
+    * @param liquidityMint - The liquidity mint PublicKey.
+    * @param slot - The slot number.
+    * @param elevationGroup - The elevation group number (default: this.state.elevationGroup).
+    * @returns The maximum borrow amount as a Decimal.
+    * @throws Error if the reserve is not found.
+  */
+  getMaxBorrowAmountV2(
+    market: KaminoMarket,
+    liquidityMint: PublicKey,
+    slot: number,
+    elevationGroup: number = this.state.elevationGroup
+  ): Decimal {
+    const reserve = market.getReserveByMint(liquidityMint);
+    if (!reserve) {
+      throw new Error('Reserve not found');
+    }
+
+    const liquidityAvailable = reserve.getLiquidityAvailableForDebtReserveGivenCaps(market, [elevationGroup])[0];
+    const maxBorrowAmount = this.getBorrowPower(market, liquidityMint, slot, elevationGroup);
+
+    if (elevationGroup === this.state.elevationGroup) {
+      return Decimal.min(maxBorrowAmount, liquidityAvailable);
+    } else {
+      const { amount: debtThisReserve } = this.borrows.get(reserve.address) || { amount: new Decimal(0) };
+      const liquidityAvailablePostMigration = Decimal.max(0, liquidityAvailable.minus(debtThisReserve));
+      return Decimal.min(maxBorrowAmount, liquidityAvailablePostMigration);
+    }
+  }
+
+  /* 
+    Returns true if the loan is eligible for the elevation group, including for the default one.
+    * @param market - The KaminoMarket object representing the market.
+    * @param slot - The slot number of the loan.
+    * @param elevationGroup - The elevation group number.
+    * @returns A boolean indicating whether the loan is eligible for elevation.
+  */
+  isLoanEligibleForElevationGroup(market: KaminoMarket, slot: number, elevationGroup: number): boolean {
+    // - isLoanEligibleForEmode(obligation, emode: 0 | number): <boolean, ErrorMessage>
+    //    - essentially checks if a loan can be migrated or not
+    //    - [x] due to collateral / debt reserves combination
+    //    - [x] due to LTV, etc
+
+    if (elevationGroup === 0) {
+      return true;
+    }
+
+    const reserveDeposits: string[] = Array.from(this.deposits.keys()).map((x) => x.toString());
+    const reserveBorrows: string[] = Array.from(this.borrows.keys()).map((x) => x.toString());
+
+    if (reserveBorrows.length > 1) {
+      return false;
+    }
+
+    const allElevationGroups = market.getMarketElevationGroupDescriptions();
+    const elevationGroupDescription = allElevationGroups[elevationGroup - 1];
+
+    // Has to be a subset
+    const allCollsIncluded = reserveDeposits.every((reserve) =>
+      elevationGroupDescription.collateralReserves.includes(reserve)
+    );
+    const allDebtsIncluded =
+      reserveBorrows.length === 0 ||
+      (reserveBorrows.length === 1 && elevationGroupDescription.debtReserve === reserveBorrows[0]);
+
+    const isEligibleBasedOnReserves = allCollsIncluded && allDebtsIncluded;
+
+    // Check if the loan can be migrated
+
+    const getOraclePx = (reserve: KaminoReserve) => reserve.getOracleMarketPrice();
+    const { collateralExchangeRates } = KaminoObligation.getRatesForObligation(market, this.state, slot);
+
+    const { borrowLimit } = KaminoObligation.calculateObligationDeposits(
+      market,
+      this.state,
+      collateralExchangeRates,
+      elevationGroup,
+      getOraclePx
+    );
+
+    const isEligibleBasedOnLtv = this.refreshedStats.userTotalBorrowBorrowFactorAdjusted.lte(borrowLimit);
+
+    return isEligibleBasedOnReserves && isEligibleBasedOnLtv;
+  }
+
+  /* 
+    Returns all elevation groups for a given obligation, except the default one
+    * @param market - The KaminoMarket instance.
+    * @returns An array of ElevationGroupDescription objects representing the elevation groups for the obligation.
+  */
+  getElevationGroupsForObligation(market: KaminoMarket): ElevationGroupDescription[] {
+    if (this.borrows.size > 1) {
+      return [];
+    }
+
+    const collReserves = Array.from(this.deposits.keys());
+    if (this.borrows.size === 0) {
+      return market.getElevationGroupsForReservesCombination(collReserves);
+    } else {
+      const debtReserve = Array.from(this.borrows.keys())[0];
+      return market.getElevationGroupsForReservesCombination(collReserves, debtReserve);
+    }
+  }
+
+  /* Deprecated function, also broken */
   getMaxBorrowAmount(
     market: KaminoMarket,
-    tokenMint: PublicKey,
+    liquidityMint: PublicKey,
     slot: number,
     requestElevationGroup: boolean
   ): Decimal {
-    const reserve = market.getReserveByMint(tokenMint);
+    const reserve = market.getReserveByMint(liquidityMint);
 
     if (!reserve) {
       throw new Error('Reserve not found');

@@ -416,7 +416,8 @@ export class KaminoAction {
     includeUserMetadata: boolean = true, // if true it includes user metadata
     referrer: PublicKey = PublicKey.default,
     currentSlot: number = 0,
-    scopeRefresh: ScopeRefresh = { includeScopeRefresh: false, scopeFeed: 'hubble' }
+    scopeRefresh: ScopeRefresh = { includeScopeRefresh: false, scopeFeed: 'hubble' },
+    overrideElevationGroupRequest: number | undefined = undefined // if set, when an elevationgroup request is made, it will use this value
   ) {
     const axn = await KaminoAction.initialize(
       'deposit',
@@ -449,7 +450,9 @@ export class KaminoAction {
       includeAtaIxns,
       requestElevationGroup,
       includeUserMetadata,
-      addInitObligationForFarm
+      addInitObligationForFarm,
+      undefined,
+      overrideElevationGroupRequest
     );
     axn.addDepositIx();
     axn.addRefreshFarmsCleanupTxnIxsToCleanupIxs();
@@ -507,7 +510,8 @@ export class KaminoAction {
     includeUserMetadata: boolean = true, // if true it includes user metadata
     referrer: PublicKey = PublicKey.default,
     currentSlot: number = 0,
-    scopeRefresh: ScopeRefresh = { includeScopeRefresh: false, scopeFeed: 'hubble' }
+    scopeRefresh: ScopeRefresh = { includeScopeRefresh: false, scopeFeed: 'hubble' },
+    overrideElevationGroupRequest: number | undefined = undefined // if set, when an elevationgroup request is made, it will use this value
   ) {
     const axn = await KaminoAction.initialize(
       'borrow',
@@ -540,7 +544,9 @@ export class KaminoAction {
       includeAtaIxns,
       requestElevationGroup,
       includeUserMetadata,
-      addInitObligationForFarm
+      addInitObligationForFarm,
+      undefined,
+      overrideElevationGroupRequest
     );
     axn.addBorrowIx();
     axn.addRefreshFarmsCleanupTxnIxsToCleanupIxs();
@@ -1615,7 +1621,8 @@ export class KaminoAction {
     requestElevationGroup: boolean = false,
     addInitObligationForFarm: boolean = false,
     isClosingPosition: boolean = false,
-    twoTokenAction: boolean = false
+    twoTokenAction: boolean = false,
+    overrideElevationGroupRequest?: number
   ) {
     // TODO: why are we not doing this first?
     if (includeAtaIxns) {
@@ -1769,7 +1776,7 @@ export class KaminoAction {
           this.addRefreshReserveIxs(allReservesExcludingCurrent, 'cleanup');
           // Skip the borrow reserve, since we repay in the same tx
           this.addRefreshObligationIx('cleanup', true);
-          this.addRequestElevationIx(0, 'cleanup', true);
+          this.addRequestElevationIx(overrideElevationGroupRequest ?? 0, 'cleanup', true);
         }
       }
 
@@ -1812,7 +1819,7 @@ export class KaminoAction {
           });
 
           const eModeGroup = groups.find((group) => group.id === eModeGroupWithMaxLtvAndDebtReserve)!.id;
-          console.log('Setting eModeGroup to', eModeGroup);
+          console.log('Setting eModeGroup to', overrideElevationGroupRequest ?? eModeGroup);
 
           let addAsSupportIx: AuxiliaryIx = 'inBetween';
           if (eModeGroup !== 0 && eModeGroup !== this.obligation?.state.elevationGroup) {
@@ -1820,7 +1827,7 @@ export class KaminoAction {
               this.obligation!.refreshedStats.potentialElevationGroupUpdate = eModeGroup;
               addAsSupportIx = 'setup';
             }
-            this.addRequestElevationIx(eModeGroup, addAsSupportIx);
+            this.addRequestElevationIx(overrideElevationGroupRequest ?? eModeGroup, addAsSupportIx);
             this.addRefreshReserveIxs(allReservesExcludingCurrent, addAsSupportIx);
             this.addRefreshReserveIxs(currentReserveAddresses.toArray(), addAsSupportIx);
             this.addRefreshObligationIx(addAsSupportIx);
@@ -1878,7 +1885,8 @@ export class KaminoAction {
     requestElevationGroup: boolean,
     includeUserMetadata: boolean,
     addInitObligationForFarm: boolean,
-    twoTokenAction: boolean = false
+    twoTokenAction: boolean = false,
+    overrideElevationGroupRequest?: number
   ) {
     if (!['mint', 'redeem'].includes(action)) {
       const [, ownerUserMetadata] = await this.kaminoMarket.getUserMetadata(this.owner);
@@ -1897,7 +1905,8 @@ export class KaminoAction {
       requestElevationGroup,
       addInitObligationForFarm,
       false,
-      twoTokenAction
+      twoTokenAction,
+      overrideElevationGroupRequest
     );
   }
 
