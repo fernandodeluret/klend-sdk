@@ -1230,7 +1230,7 @@ export class KaminoObligation {
 
     const { maxLtv: reserveMaxLtv } = this.getLtvForReserve(market, depositReserve);
     // bf adjusted debt value > allowed_borrow_value
-    if (this.refreshedStats.userTotalBorrowBorrowFactorAdjusted >= this.refreshedStats.borrowLimit) {
+    if (this.refreshedStats.userTotalBorrowBorrowFactorAdjusted.gte(this.refreshedStats.borrowLimit)) {
       return new Decimal(0);
     }
 
