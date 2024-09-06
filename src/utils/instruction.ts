@@ -19,6 +19,7 @@ import {
 } from '@solana/web3.js';
 import { fromTxError } from '../idl_codegen/errors';
 import { sleep } from '../classes/utils';
+import { batchFetch } from '@kamino-finance/kliquidity-sdk';
 
 export async function buildAndSendTxnWithLogs(
   c: Connection,
@@ -209,20 +210,26 @@ export const getLookupTableAccount = async (connection: Connection, address: Pub
   return connection.getAddressLookupTable(address).then((res) => res.value);
 };
 
-export const getLookupTableAccounts = async (connection: Connection, addresses: PublicKey[]) => {
+export async function getLookupTableAccounts(
+  connection: Connection,
+  addresses: PublicKey[]
+): Promise<AddressLookupTableAccount[]> {
   const lookupTableAccounts: AddressLookupTableAccount[] = [];
-  for (const address of addresses) {
-    const lookupTableAccount = await connection.getAddressLookupTable(address).then((res) => res.value);
-
-    if (!lookupTableAccount) {
-      console.error('lookup table is not found');
-      throw new Error('lookup table is not found');
+  const accountInfos = await batchFetch(addresses, (batch) => connection.getMultipleAccountsInfo(batch));
+  for (let i = 0; i < addresses.length; i++) {
+    const info = accountInfos[i];
+    if (!info) {
+      throw new Error(`Lookup table ${addresses[i]} is not found`);
     }
-
-    lookupTableAccounts.push(lookupTableAccount);
+    lookupTableAccounts.push(
+      new AddressLookupTableAccount({
+        key: addresses[i],
+        state: AddressLookupTableAccount.deserialize(info.data),
+      })
+    );
   }
   return lookupTableAccounts;
-};
+}
 
 export const getComputeBudgetAndPriorityFeeIxns = (
   units: number,
