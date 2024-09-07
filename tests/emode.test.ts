@@ -1,9 +1,11 @@
 // Tests
-// - [ ] deposit and switch elevation group back and forth - with no debt, with debt
-// - [ ] borrow and switch elevation group back and forth - with no debt, with debt
+// - [x] test getBorrowCapForReserve() -> BorrowCapsAndCounters is correctly calculated
+// - [x] deposit and switch elevation group back and forth - with no debt
+// - [x] deposit and switch elevation group back and forth - with debt
+// - [x] borrow and switch elevation group back and forth - with no debt
+// - [x] borrow and switch elevation group back and forth - with debt
 // - [ ] test isLoanEligibleForElevationGroup()
 // - [ ] test getElevationGroupsForObligation()
-// - [ ] test getBorrowCapForReserve() -> BorrowCapsAndCounters is correctly calculated
 // - [ ] test getLiquidityAvailableForDebtReserveGivenCaps()
 // - [ ] test getBorrowPower()
 // - [ ] test getMaxBorrowAmountV2()
@@ -15,12 +17,14 @@ import {
   updateReserveBorrowLimit,
   updateReserveBorrowLimitOutsideEmode,
   updateReserveBorrowLimitsAgainstCollInElevationGroup,
+  updateReserveDebtNetWithdrawalCap,
   updateReserveElevationGroups,
   updateReserveUtilizationCap,
 } from './setup_operations';
 import {
   addReserveToMarket,
   balances,
+  borrow,
   deposit,
   initEnv,
   makeElevationGroupConfig,
@@ -29,8 +33,16 @@ import {
 } from './setup_utils';
 import { createScopeFeed } from './kamino/scope';
 import { sleep } from '@kamino-finance/kliquidity-sdk';
-import { DEFAULT_RECENT_SLOT_DURATION_MS, KaminoAction, KaminoMarket, PROGRAM_ID, VanillaObligation } from '../src';
+import {
+  BorrowCapsAndCounters,
+  DEFAULT_RECENT_SLOT_DURATION_MS,
+  KaminoAction,
+  KaminoMarket,
+  PROGRAM_ID,
+  VanillaObligation,
+} from '../src';
 import Decimal from 'decimal.js';
+import { assertFuzzyEq } from './assert';
 
 describe('isolated_and_cross_modes', () => {
   it('switch elevation group back and forth between 0 (default) and elevated one', async () => {
@@ -358,7 +370,7 @@ describe('isolated_and_cross_modes', () => {
     assert.equal(obligation.isLoanEligibleForElevationGroup(kaminoMarket, slot, defaultElevationGroupNo), true);
   });
 
-  it('borrow caps', async () => {
+  it('deposit / borrow and switch borrow cap', async () => {
     const env = await initEnv('localnet');
     const [, market] = await createMarket(env);
     const kaminoMarket = (await KaminoMarket.load(
@@ -418,13 +430,15 @@ describe('isolated_and_cross_modes', () => {
       updateReserveElevationGroups(env, pyusdReservePk, [solPyusdGroupNo, pyusdUsdcGroupNo]),
     ]);
 
-    await updateReserveBorrowLimit(env, kaminoMarket, solReservePk, 2000);
-    await updateReserveBorrowLimitOutsideEmode(env, kaminoMarket, solReservePk, 1500);
-    await updateReserveUtilizationCap(env, kaminoMarket, solReservePk, 80);
-    await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [500]);
+    await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, solReservePk, [0, 1_500_000_000]); // 1.5 SOL
+
+    //
 
     await sleep(2000);
     await kaminoMarket.reload();
+
+    const whale = await newUser(env, kaminoMarket, [['PYUSD', new Decimal(10)]]);
+    await deposit(env, kaminoMarket, whale, 'PYUSD', new Decimal(10), new VanillaObligation(PROGRAM_ID));
 
     const user = await newUser(env, kaminoMarket, [
       ['SOL', new Decimal(10)],
@@ -435,12 +449,208 @@ describe('isolated_and_cross_modes', () => {
 
     await sleep(2000);
 
-    await deposit(env, kaminoMarket, user, 'SOL', new Decimal(1), new VanillaObligation(PROGRAM_ID));
+    {
+      // No debt, No elevation group provided, defaults to 0
+      await deposit(env, kaminoMarket, user, 'SOL', new Decimal(1), new VanillaObligation(PROGRAM_ID));
+      await sleep(2000);
+      const obligation = (await kaminoMarket.getObligationByWallet(user.publicKey, new VanillaObligation(PROGRAM_ID)))!;
+      assert.equal(obligation.state.elevationGroup, 0);
+    }
+
+    {
+      // No debt, Go to 0 explicitly, but it gets ignored
+      await deposit(env, kaminoMarket, user, 'SOL', new Decimal(1), new VanillaObligation(PROGRAM_ID), false, true, 0);
+      await sleep(2000);
+      const obligation = (await kaminoMarket.getObligationByWallet(user.publicKey, new VanillaObligation(PROGRAM_ID)))!;
+      assert.equal(obligation.state.elevationGroup, 0);
+    }
+
+    {
+      // No debt, Go to 2
+      await deposit(env, kaminoMarket, user, 'SOL', new Decimal(1), new VanillaObligation(PROGRAM_ID), false, true, 2);
+      await sleep(2000);
+      const obligation = (await kaminoMarket.getObligationByWallet(user.publicKey, new VanillaObligation(PROGRAM_ID)))!;
+      assert.equal(obligation.state.elevationGroup, 2);
+    }
+
+    {
+      // No debt, Go to 4
+      await deposit(env, kaminoMarket, user, 'SOL', new Decimal(1), new VanillaObligation(PROGRAM_ID), false, true, 4);
+      await sleep(2000);
+      const obligation = (await kaminoMarket.getObligationByWallet(user.publicKey, new VanillaObligation(PROGRAM_ID)))!;
+      assert.equal(obligation.state.elevationGroup, 4);
+    }
+
+    {
+      // No debt, Back to 0
+      await deposit(env, kaminoMarket, user, 'SOL', new Decimal(1), new VanillaObligation(PROGRAM_ID), false, true, 0);
+      await sleep(2000);
+      const obligation = (await kaminoMarket.getObligationByWallet(user.publicKey, new VanillaObligation(PROGRAM_ID)))!;
+      assert.equal(obligation.state.elevationGroup, 0);
+    }
+
+    {
+      // With debt, Stay at 0
+      await borrow(env, kaminoMarket, user, 'PYUSD', new Decimal(0.1));
+      await sleep(2000);
+      const obligation = (await kaminoMarket.getObligationByWallet(user.publicKey, new VanillaObligation(PROGRAM_ID)))!;
+      assert.equal(obligation.state.elevationGroup, 0);
+    }
+
+    {
+      // With debt, Go to 2
+      await borrow(env, kaminoMarket, user, 'PYUSD', new Decimal(0.1), true, undefined, 2);
+      await sleep(2000);
+      const obligation = (await kaminoMarket.getObligationByWallet(user.publicKey, new VanillaObligation(PROGRAM_ID)))!;
+      assert.equal(obligation.state.elevationGroup, 2);
+    }
+
+    {
+      // With debt, Go to back to 0
+      await borrow(env, kaminoMarket, user, 'PYUSD', new Decimal(0.1), true, undefined, 0);
+      await sleep(2000);
+      const obligation = (await kaminoMarket.getObligationByWallet(user.publicKey, new VanillaObligation(PROGRAM_ID)))!;
+      assert.equal(obligation.state.elevationGroup, 0);
+    }
+  });
+
+  it('get borrow caps', async () => {
+    const env = await initEnv('localnet');
+    const [, market] = await createMarket(env);
+    const kaminoMarket = (await KaminoMarket.load(
+      env.connection,
+      market.publicKey,
+      DEFAULT_RECENT_SLOT_DURATION_MS,
+      PROGRAM_ID,
+      true
+    ))!;
+
+    await createScopeFeed(env, kaminoMarket.scope);
+    await sleep(2000);
+
+    // Create group between SOL and JITOSOL, with SOL debt
+    // Create group between SOL and PyUSD, with PyUSD debt
+    // Create group between USDC and PyUSD, with USDC debt
+
+    const res = await Promise.all([
+      addReserveToMarket(env, market, 'SOL'),
+      addReserveToMarket(env, market, 'JITOSOL'),
+      addReserveToMarket(env, market, 'USDC'),
+      addReserveToMarket(env, market, 'PYUSD'),
+    ]);
+
+    const { reserve: solReservePk } = res[0];
+    const { reserve: jitosolReservePk } = res[1];
+    const { reserve: usdcReservePk } = res[2];
+    const { reserve: pyusdReservePk } = res[3];
+
+    // const defaultElevationGroupNo = 0;
+    const jitosolSolGroupNo = 1;
+    const solPyusdGroupNo = 2;
+    const pyusdUsdcGroupNo = 3;
+    const solUsdcGroupNo = 4;
+
+    const jitosolSolGroup = makeElevationGroupConfig(solReservePk, jitosolSolGroupNo); // JITOSOL collateral, SOL debt,
+    const solPyusdGroup = makeElevationGroupConfig(pyusdReservePk, solPyusdGroupNo); // SOL collateral, PyUSD debt,
+    const pyusdUsdcGroup = makeElevationGroupConfig(usdcReservePk, pyusdUsdcGroupNo); // PyUSD collateral, USDC debt,
+    const solUsdcGroup = makeElevationGroupConfig(usdcReservePk, solUsdcGroupNo); // SOL collateral, USDC debt,
+
+    console.log('solReservePk', solReservePk.toString());
+    console.log('usdcReservePk', usdcReservePk.toString());
+    console.log('jitosolReservePk', jitosolReservePk.toString());
+    console.log('pyusdReservePk', pyusdReservePk.toString());
+
+    await Promise.all([
+      updateMarketElevationGroup(env, market.publicKey, solReservePk, jitosolSolGroup),
+      updateMarketElevationGroup(env, market.publicKey, pyusdReservePk, solPyusdGroup),
+      updateMarketElevationGroup(env, market.publicKey, usdcReservePk, pyusdUsdcGroup),
+      updateMarketElevationGroup(env, market.publicKey, usdcReservePk, solUsdcGroup),
+    ]);
+
+    await Promise.all([
+      updateReserveElevationGroups(env, solReservePk, [jitosolSolGroupNo, solPyusdGroupNo, solUsdcGroupNo]),
+      updateReserveElevationGroups(env, jitosolReservePk, [jitosolSolGroupNo]),
+      updateReserveElevationGroups(env, usdcReservePk, [pyusdUsdcGroupNo, solUsdcGroupNo]),
+      updateReserveElevationGroups(env, pyusdReservePk, [solPyusdGroupNo, pyusdUsdcGroupNo]),
+    ]);
+
+    await updateReserveBorrowLimit(env, kaminoMarket, solReservePk, 2_000_000_000); // 2.0 SOL
+    await updateReserveBorrowLimitOutsideEmode(env, kaminoMarket, solReservePk, 1_500_000_000); // 1.5 SOL
+    await updateReserveUtilizationCap(env, kaminoMarket, solReservePk, 80);
+    await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [500_000_000]); // 0.5 SOL
+    await updateReserveDebtNetWithdrawalCap(env, kaminoMarket, solReservePk, 1_500_000_000, 500); // 1.5 SOL every 500 seconds
+
+    await sleep(2000);
+    await kaminoMarket.reload();
+
+    const whale = await newUser(env, kaminoMarket, [['SOL', new Decimal(10)]]);
+    await deposit(env, kaminoMarket, whale, 'SOL', new Decimal(10), new VanillaObligation(PROGRAM_ID));
+
+    const user = await newUser(env, kaminoMarket, [
+      ['SOL', new Decimal(10)],
+      ['JITOSOL', new Decimal(10)],
+      ['USDC', new Decimal(10)],
+      ['PYUSD', new Decimal(10)],
+    ]);
+
+    await sleep(2000);
+
+    await deposit(env, kaminoMarket, user, 'JITOSOL', new Decimal(5), new VanillaObligation(PROGRAM_ID));
+    await borrow(env, kaminoMarket, user, 'SOL', new Decimal(1));
+
+    await sleep(2000);
+    await kaminoMarket.reload();
     await sleep(2000);
 
     const solReserve = kaminoMarket.getReserveByAddress(solReservePk);
     const borrowCaps = await solReserve!.getBorrowCapForReserve(kaminoMarket);
 
     console.log('Borrow Caps', borrowCaps);
+
+    const expectedBorrowCaps: BorrowCapsAndCounters = {
+      utilizationCap: new Decimal(0.8), // 80%
+      utilizationCurrentValue: new Decimal(0.1), // 10%
+      netWithdrawalCap: new Decimal(1500000000),
+      netWithdrawalCurrentValue: new Decimal(1000000000),
+      netWithdrawalLastUpdateTs: new Decimal(0),
+      netWithdrawalIntervalDurationSeconds: new Decimal(500),
+      globalDebtCap: new Decimal(2000000000),
+      globalTotalBorrowed: new Decimal(1000000000),
+      debtOutsideEmodeCap: new Decimal(1500000000),
+      borrowedOutsideEmode: new Decimal(1000000000),
+      debtAgainstCollateralReserveCaps: [
+        {
+          collateralReserve: jitosolReservePk,
+          elevationGroup: 1,
+          maxDebt: new Decimal(500000000),
+          currentValue: new Decimal(0),
+        },
+      ],
+    };
+
+    assert(borrowCaps.utilizationCap.equals(expectedBorrowCaps.utilizationCap));
+    assertFuzzyEq(borrowCaps.utilizationCurrentValue, expectedBorrowCaps.utilizationCurrentValue);
+
+    assert(borrowCaps.netWithdrawalCap.equals(expectedBorrowCaps.netWithdrawalCap));
+    assert(borrowCaps.netWithdrawalCurrentValue.equals(expectedBorrowCaps.netWithdrawalCurrentValue));
+    // assert(borrowCaps.netWithdrawalLastUpdateTs.equals(expectedBorrowCaps.netWithdrawalLastUpdateTs));
+    assert(
+      borrowCaps.netWithdrawalIntervalDurationSeconds.equals(expectedBorrowCaps.netWithdrawalIntervalDurationSeconds)
+    );
+
+    assert(borrowCaps.globalDebtCap.equals(expectedBorrowCaps.globalDebtCap));
+    assertFuzzyEq(borrowCaps.globalTotalBorrowed, expectedBorrowCaps.globalTotalBorrowed);
+
+    assert(borrowCaps.debtOutsideEmodeCap.equals(expectedBorrowCaps.debtOutsideEmodeCap));
+    assert(borrowCaps.borrowedOutsideEmode.equals(expectedBorrowCaps.borrowedOutsideEmode));
+
+    for (let i = 0; i < borrowCaps.debtAgainstCollateralReserveCaps.length; i++) {
+      const actual = borrowCaps.debtAgainstCollateralReserveCaps[i];
+      const expected = expectedBorrowCaps.debtAgainstCollateralReserveCaps[i];
+      assert(actual.collateralReserve.equals(expected.collateralReserve));
+      assert(actual.elevationGroup === expected.elevationGroup);
+      assert(actual.maxDebt.equals(expected.maxDebt));
+      assert(actual.currentValue.equals(expected.currentValue));
+    }
   });
 });

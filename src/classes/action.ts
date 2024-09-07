@@ -1761,79 +1761,105 @@ export class KaminoAction {
         this.addRefreshObligationIx(addAsSupportIx, false);
       }
 
-      if (action === 'repay' && requestElevationGroup) {
-        const repayObligationLiquidity = this.obligation!.borrows.get(this.reserve.address);
+      if (requestElevationGroup) {
+        if (action === 'repay') {
+          const repayObligationLiquidity = this.obligation!.borrows.get(this.reserve.address);
 
-        if (!repayObligationLiquidity) {
-          throw new Error(`Could not find debt reserve ${this.reserve.address} in obligation`);
-        }
+          if (!repayObligationLiquidity) {
+            throw new Error(`Could not find debt reserve ${this.reserve.address} in obligation`);
+          }
 
-        if (
-          new Decimal(repayObligationLiquidity.amount).lte(new Decimal(this.amount.toString())) &&
-          this.obligation!.borrows.size === 1 &&
-          this.obligation?.state.elevationGroup !== 0
-        ) {
-          this.addRefreshReserveIxs(allReservesExcludingCurrent, 'cleanup');
-          // Skip the borrow reserve, since we repay in the same tx
-          this.addRefreshObligationIx('cleanup', true);
-          this.addRequestElevationIx(overrideElevationGroupRequest ?? 0, 'cleanup', true);
-        }
-      }
+          if (
+            new Decimal(repayObligationLiquidity.amount).lte(new Decimal(this.amount.toString())) &&
+            this.obligation!.borrows.size === 1 &&
+            this.obligation?.state.elevationGroup !== 0
+          ) {
+            this.addRefreshReserveIxs(allReservesExcludingCurrent, 'cleanup');
+            // Skip the borrow reserve, since we repay in the same tx
+            this.addRefreshObligationIx('cleanup', true);
+            this.addRequestElevationIx(overrideElevationGroupRequest ?? 0, 'cleanup', true);
+          }
+        } else if (action === 'depositAndBorrow' || action === 'borrow') {
+          let newElevationGroup: number = -1;
+          let addAsSupportIx: AuxiliaryIx = 'setup';
 
-      if ((action === 'depositAndBorrow' || action === 'borrow') && requestElevationGroup) {
-        let emodeGroupsDebt = this.reserve.state.config.elevationGroups;
-        let emodeGroupsColl = this.reserve.state.config.elevationGroups;
-        let debtReserve = this.reserve.address;
+          if (overrideElevationGroupRequest !== undefined) {
+            newElevationGroup = overrideElevationGroupRequest;
+          } else {
+            let emodeGroupsDebt = this.reserve.state.config.elevationGroups;
+            let emodeGroupsColl = this.reserve.state.config.elevationGroups;
+            let debtReserve = this.reserve.address;
 
-        if (action === 'depositAndBorrow') {
-          emodeGroupsDebt = this.outflowReserve!.state.config.elevationGroups;
-          debtReserve = this.outflowReserve!.address;
-        } else if (action === 'borrow') {
-          const depositReserve = this.obligation!.state.deposits.find(
-            (x) => !x.depositReserve.equals(PublicKey.default)
-          )!.depositReserve;
-          const collReserve = this.kaminoMarket.getReserveByAddress(depositReserve);
-          emodeGroupsColl = collReserve!.state.config.elevationGroups;
-        }
-        const groups = this.kaminoMarket.state.elevationGroups;
-        const commonElevationGroups = [...emodeGroupsColl].filter(
-          (item) => emodeGroupsDebt.includes(item) && item !== 0 && groups[item - 1].debtReserve.equals(debtReserve)
-        );
-
-        console.log(
-          'Groups of coll reserve',
-          emodeGroupsColl,
-          'Groups of debt reserve',
-          emodeGroupsDebt,
-          'Common groups',
-          commonElevationGroups
-        );
-
-        if (commonElevationGroups.length === 0) {
-          console.log('No common elevation groups found, staying with default');
-        } else {
-          const eModeGroupWithMaxLtvAndDebtReserve = commonElevationGroups.reduce((prev, curr) => {
-            const prevGroup = groups.find((group) => group.id === prev);
-            const currGroup = groups.find((group) => group.id === curr);
-            return prevGroup!.ltvPct > currGroup!.ltvPct ? prev : curr;
-          });
-
-          const eModeGroup = groups.find((group) => group.id === eModeGroupWithMaxLtvAndDebtReserve)!.id;
-          console.log('Setting eModeGroup to', overrideElevationGroupRequest ?? eModeGroup);
-
-          let addAsSupportIx: AuxiliaryIx = 'inBetween';
-          if (eModeGroup !== 0 && eModeGroup !== this.obligation?.state.elevationGroup) {
-            if (action === 'borrow') {
-              this.obligation!.refreshedStats.potentialElevationGroupUpdate = eModeGroup;
+            if (action === 'depositAndBorrow') {
+              emodeGroupsDebt = this.outflowReserve!.state.config.elevationGroups;
+              debtReserve = this.outflowReserve!.address;
+              addAsSupportIx = 'inBetween';
+            } else if (action === 'borrow') {
+              const depositReserve = this.obligation!.state.deposits.find(
+                (x) => !x.depositReserve.equals(PublicKey.default)
+              )!.depositReserve;
+              const collReserve = this.kaminoMarket.getReserveByAddress(depositReserve);
+              emodeGroupsColl = collReserve!.state.config.elevationGroups;
               addAsSupportIx = 'setup';
             }
-            this.addRequestElevationIx(overrideElevationGroupRequest ?? eModeGroup, addAsSupportIx);
+
+            const groups = this.kaminoMarket.state.elevationGroups;
+            const commonElevationGroups = [...emodeGroupsColl].filter(
+              (item) => emodeGroupsDebt.includes(item) && item !== 0 && groups[item - 1].debtReserve.equals(debtReserve)
+            );
+
+            console.log(
+              'Groups of coll reserve',
+              emodeGroupsColl,
+              'Groups of debt reserve',
+              emodeGroupsDebt,
+              'Common groups',
+              commonElevationGroups
+            );
+
+            if (commonElevationGroups.length === 0) {
+              console.log('No common elevation groups found, staying with default');
+            } else {
+              const eModeGroupWithMaxLtvAndDebtReserve = commonElevationGroups.reduce((prev, curr) => {
+                const prevGroup = groups.find((group) => group.id === prev);
+                const currGroup = groups.find((group) => group.id === curr);
+                return prevGroup!.ltvPct > currGroup!.ltvPct ? prev : curr;
+              });
+
+              const eModeGroup = groups.find((group) => group.id === eModeGroupWithMaxLtvAndDebtReserve)!.id;
+              console.log('Setting eModeGroup to', eModeGroup);
+
+              if (eModeGroup !== 0 && eModeGroup !== this.obligation?.state.elevationGroup) {
+                newElevationGroup = eModeGroup;
+              }
+            }
+          }
+
+          console.log('newElevationGroup', newElevationGroup, addAsSupportIx);
+          if (newElevationGroup >= 0) {
+            this.addRequestElevationIx(newElevationGroup, addAsSupportIx);
             this.addRefreshReserveIxs(allReservesExcludingCurrent, addAsSupportIx);
             this.addRefreshReserveIxs(currentReserveAddresses.toArray(), addAsSupportIx);
             this.addRefreshObligationIx(addAsSupportIx);
+
+            if (action === 'borrow') {
+              this.obligation!.refreshedStats.potentialElevationGroupUpdate = newElevationGroup;
+            }
           }
+        } else if (
+          action === 'deposit' &&
+          overrideElevationGroupRequest !== undefined &&
+          overrideElevationGroupRequest !== this.obligation?.state.elevationGroup
+        ) {
+          const addAsSupportIx: AuxiliaryIx = 'setup';
+          console.log('Deposit: Requesting elevation group', overrideElevationGroupRequest);
+          this.addRequestElevationIx(overrideElevationGroupRequest, addAsSupportIx);
+          this.addRefreshReserveIxs(allReservesExcludingCurrent, addAsSupportIx);
+          this.addRefreshReserveIxs(currentReserveAddresses.toArray(), addAsSupportIx);
+          this.addRefreshObligationIx(addAsSupportIx);
         }
       }
+
       if (addAsSupportIx === 'setup') {
         // If this is an setup ixn (therefore not an in-between), it means it's either a one off action
         // or the first of a two-token-action

@@ -2,6 +2,7 @@ import { LoanArgs, MarketArgs, ReserveArgs } from './models';
 import {
   DEFAULT_RECENT_SLOT_DURATION_MS,
   KaminoMarket,
+  KaminoObligation,
   KaminoReserve,
   lamportsToNumberDecimal,
 } from '@kamino-finance/klend-sdk';
@@ -28,7 +29,7 @@ export async function getMarket({ connection, marketPubkey }: MarketArgs) {
  * Get loan for loan (obligation) public key
  * @param args
  */
-export async function getLoan(args: LoanArgs) {
+export async function getLoan(args: LoanArgs): Promise<KaminoObligation | null> {
   const market = await getMarket(args);
   return market.getObligationByAddress(args.obligationPubkey);
 }

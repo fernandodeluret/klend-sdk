@@ -962,7 +962,7 @@ export class KaminoReserve {
 
     const caps: BorrowCapsAndCounters = {
       // Utilization cap
-      utilizationCap: new Decimal(utilizationCap > 0 ? utilizationCap : 100),
+      utilizationCap: new Decimal(utilizationCap > 0 ? utilizationCap / 100 : 1),
       utilizationCurrentValue: new Decimal(utilizationCurrentValue),
 
       // Daily borrow cap
@@ -992,7 +992,7 @@ export class KaminoReserve {
     const liquidityAvailable = this.getLiquidityAvailableAmount();
 
     // Cap this to utilization cap first
-    const utilizationRatioLimit = caps.utilizationCap.div(100);
+    const utilizationRatioLimit = caps.utilizationCap;
     const currentUtilizationRatio = this.calculateUtilizationRatio();
 
     const liquidityGivenUtilizationCap = this.getTotalSupply().mul(

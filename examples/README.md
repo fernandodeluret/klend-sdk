@@ -33,14 +33,20 @@ export RPC_ENDPOINT=YOUR_RPC_URL_HERE
 
 ## Examples
 
-#### Get loan LTV
+#### Get loan info deposits / borrows 
 ```bash
-yarn run loan-ltv
+yarn ts-node ./example_loan_info.ts
 ```
+
 
 #### Get loan value (deposited/borrowed/net value)
 ```bash
 yarn run loan-value
+```
+
+#### Get loan LTV
+```bash
+yarn run loan-ltv
 ```
 
 #### Get user loans

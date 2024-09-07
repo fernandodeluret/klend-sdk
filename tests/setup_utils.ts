@@ -782,7 +782,9 @@ export const deposit = async (
   symbol: string,
   amount: Decimal,
   obligationType: ObligationType = new VanillaObligation(PROGRAM_ID),
-  ixnsOnly: boolean = false // TODO: remove this
+  ixnsOnly: boolean = false, // TODO: remove this
+  requestElevationGroup: boolean | undefined = undefined,
+  overrideElevationGroupRequest: number | undefined = undefined
 ): Promise<TransactionInstruction[] | TransactionSignature> => {
   const reserve = kaminoMarket.getReserveBySymbol(symbol);
   if (!reserve) {
@@ -801,7 +803,15 @@ export const deposit = async (
     numberToLamportsDecimal(amount, reserve.stats.decimals).floor().toString(),
     reserve.getLiquidityMint(),
     user.publicKey,
-    obligationType
+    obligationType,
+    undefined,
+    undefined,
+    requestElevationGroup,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    overrideElevationGroupRequest
   );
 
   const ixns = [...kaminoAction.setupIxs, ...kaminoAction.lendingIxs, ...kaminoAction.cleanupIxs];
@@ -823,7 +833,8 @@ export const borrow = async (
   symbol: string,
   amount: Decimal,
   requestElevationGroup: boolean = false,
-  obligationType: ObligationType = new VanillaObligation(PROGRAM_ID)
+  obligationType: ObligationType = new VanillaObligation(PROGRAM_ID),
+  overrideElevationGroupRequest: number | undefined = undefined
 ) => {
   const reserve = kaminoMarket.getReserveBySymbol(symbol);
   if (!reserve) {
@@ -838,7 +849,12 @@ export const borrow = async (
     obligationType,
     undefined,
     undefined,
-    requestElevationGroup
+    requestElevationGroup,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    overrideElevationGroupRequest
   );
 
   const tx = await buildVersionedTransaction(env.connection, user.publicKey, [
