@@ -224,6 +224,30 @@ export async function updateReserveElevationGroups(
 
 export const VALUE_BYTE_MAX_ARRAY_LEN_MARKET_UPDATE = 72;
 
+export async function updateReserveLtv(
+  env: Env,
+  market: KaminoMarket,
+  reserveAddress: PublicKey,
+  ltvPct: number
+): Promise<TransactionSignature> {
+  // TODO: revert the +1 when the enum is updated to be indexed at 0
+  const mode = UpdateConfigMode.UpdateLoanToValuePct.discriminator + 1;
+  const value = updateReserveConfigEncodedValue(UpdateConfigMode.UpdateLoanToValuePct.discriminator, ltvPct);
+  return updateReserveConfigSingle(env, market, reserveAddress, mode, value);
+}
+
+export async function updateReserveLiquidationLtv(
+  env: Env,
+  market: KaminoMarket,
+  reserveAddress: PublicKey,
+  ltvPct: number
+): Promise<TransactionSignature> {
+  // TODO: revert the +1 when the enum is updated to be indexed at 0
+  const mode = UpdateConfigMode.UpdateLiquidationThresholdPct.discriminator + 1;
+  const value = updateReserveConfigEncodedValue(UpdateConfigMode.UpdateLiquidationThresholdPct.discriminator, ltvPct);
+  return updateReserveConfigSingle(env, market, reserveAddress, mode, value);
+}
+
 export async function updateReserveBorrowLimit(
   env: Env,
   market: KaminoMarket,

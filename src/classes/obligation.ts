@@ -720,7 +720,6 @@ export class KaminoObligation {
   } {
     const getOraclePx = (reserve: KaminoReserve) => reserve.getOracleMarketPrice();
     const depositStatsOraclePrice = this.calculateDeposits(market, obligation, collateralExchangeRates, getOraclePx);
-
     const borrowStatsOraclePrice = this.calculateBorrows(market, obligation, cumulativeBorrowRates, getOraclePx);
 
     const netAccountValueScopeRefreshed = depositStatsOraclePrice.userTotalDeposit.minus(
@@ -1022,10 +1021,6 @@ export class KaminoObligation {
     //    - [x] due to collateral / debt reserves combination
     //    - [x] due to LTV, etc
 
-    if (elevationGroup === 0) {
-      return true;
-    }
-
     const reserveDeposits: string[] = Array.from(this.deposits.keys()).map((x) => x.toString());
     const reserveBorrows: string[] = Array.from(this.borrows.keys()).map((x) => x.toString());
 
@@ -1033,21 +1028,25 @@ export class KaminoObligation {
       return false;
     }
 
-    const allElevationGroups = market.getMarketElevationGroupDescriptions();
-    const elevationGroupDescription = allElevationGroups[elevationGroup - 1];
+    if (elevationGroup > 0) {
+      // Elevation group 0 doesn't need to do reserve checks, as all are included by default
+      const allElevationGroups = market.getMarketElevationGroupDescriptions();
+      const elevationGroupDescription = allElevationGroups[elevationGroup - 1];
 
-    // Has to be a subset
-    const allCollsIncluded = reserveDeposits.every((reserve) =>
-      elevationGroupDescription.collateralReserves.includes(reserve)
-    );
-    const allDebtsIncluded =
-      reserveBorrows.length === 0 ||
-      (reserveBorrows.length === 1 && elevationGroupDescription.debtReserve === reserveBorrows[0]);
+      // Has to be a subset
+      const allCollsIncluded = reserveDeposits.every((reserve) =>
+        elevationGroupDescription.collateralReserves.includes(reserve)
+      );
+      const allDebtsIncluded =
+        reserveBorrows.length === 0 ||
+        (reserveBorrows.length === 1 && elevationGroupDescription.debtReserve === reserveBorrows[0]);
 
-    const isEligibleBasedOnReserves = allCollsIncluded && allDebtsIncluded;
+      if (!allCollsIncluded || !allDebtsIncluded) {
+        return false;
+      }
+    }
 
-    // Check if the loan can be migrated
-
+    // Check if the loan can be migrated based on LTV
     const getOraclePx = (reserve: KaminoReserve) => reserve.getOracleMarketPrice();
     const { collateralExchangeRates } = KaminoObligation.getRatesForObligation(market, this.state, slot);
 
@@ -1061,7 +1060,7 @@ export class KaminoObligation {
 
     const isEligibleBasedOnLtv = this.refreshedStats.userTotalBorrowBorrowFactorAdjusted.lte(borrowLimit);
 
-    return isEligibleBasedOnReserves && isEligibleBasedOnLtv;
+    return isEligibleBasedOnLtv;
   }
 
   /* 

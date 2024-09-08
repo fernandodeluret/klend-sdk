@@ -19,6 +19,8 @@ import {
   updateReserveBorrowLimitsAgainstCollInElevationGroup,
   updateReserveDebtNetWithdrawalCap,
   updateReserveElevationGroups,
+  updateReserveLiquidationLtv,
+  updateReserveLtv,
   updateReserveUtilizationCap,
 } from './setup_operations';
 import {
@@ -29,6 +31,7 @@ import {
   initEnv,
   makeElevationGroupConfig,
   newUser,
+  repay,
   sendTransactionsFromAction,
 } from './setup_utils';
 import { createScopeFeed } from './kamino/scope';
@@ -652,5 +655,93 @@ describe('isolated_and_cross_modes', () => {
       assert(actual.maxDebt.equals(expected.maxDebt));
       assert(actual.currentValue.equals(expected.currentValue));
     }
+  });
+
+  it('is loan eligible for elevation group ltv part', async () => {
+    const env = await initEnv('localnet');
+    const [, market] = await createMarket(env);
+    const kaminoMarket = (await KaminoMarket.load(
+      env.connection,
+      market.publicKey,
+      DEFAULT_RECENT_SLOT_DURATION_MS,
+      PROGRAM_ID,
+      true
+    ))!;
+
+    await createScopeFeed(env, kaminoMarket.scope);
+    await sleep(2000);
+
+    const res = await Promise.all([addReserveToMarket(env, market, 'SOL'), addReserveToMarket(env, market, 'JITOSOL')]);
+
+    const { reserve: solReservePk } = res[0];
+    const { reserve: jitosolReservePk } = res[1];
+    console.log('solReservePk', solReservePk.toString());
+    console.log('jitosolReservePk', jitosolReservePk.toString());
+
+    const defaultElevationGroupNo = 0;
+    const jitosolSolGroupNo = 1;
+    const jitosolSolGroup = makeElevationGroupConfig(solReservePk, jitosolSolGroupNo); // JITOSOL collateral, SOL debt,
+    await Promise.all([updateMarketElevationGroup(env, market.publicKey, solReservePk, jitosolSolGroup)]); // 90% ltv, 95% liq ltv
+    await Promise.all([
+      updateReserveElevationGroups(env, solReservePk, [jitosolSolGroupNo]),
+      updateReserveElevationGroups(env, jitosolReservePk, [jitosolSolGroupNo]),
+      updateReserveLtv(env, kaminoMarket, jitosolReservePk, 70),
+      updateReserveLiquidationLtv(env, kaminoMarket, jitosolReservePk, 80),
+      updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [10_000_000_000]), // 10 SOL
+    ]);
+
+    await kaminoMarket.reload();
+
+    // await sleep(2000);
+
+    const whale = await newUser(env, kaminoMarket, [['SOL', new Decimal(10)]]);
+    await deposit(env, kaminoMarket, whale, 'SOL', new Decimal(10), new VanillaObligation(PROGRAM_ID));
+
+    const user = await newUser(env, kaminoMarket, [
+      ['SOL', new Decimal(10)],
+      ['JITOSOL', new Decimal(10)],
+    ]);
+
+    const slot = await env.connection.getSlot();
+
+    await sleep(2000);
+    await deposit(env, kaminoMarket, user, 'JITOSOL', new Decimal(5), new VanillaObligation(PROGRAM_ID));
+
+    await sleep(2000);
+    let obligation = (await kaminoMarket.getObligationByWallet(user.publicKey, new VanillaObligation(PROGRAM_ID)))!;
+
+    assert.equal(obligation.isLoanEligibleForElevationGroup(kaminoMarket, slot, defaultElevationGroupNo), true);
+    assert.equal(obligation.isLoanEligibleForElevationGroup(kaminoMarket, slot, jitosolSolGroupNo), true);
+
+    const solReserve = kaminoMarket.getReserveByAddress(solReservePk);
+    const jitosolReserve = kaminoMarket.getReserveByAddress(jitosolReservePk);
+
+    console.log('SOL Price', solReserve?.tokenOraclePrice.price);
+    console.log('JITOSOL Price', jitosolReserve?.tokenOraclePrice.price);
+
+    await borrow(env, kaminoMarket, user, 'SOL', new Decimal(1), true, undefined, jitosolSolGroupNo);
+    await sleep(2000);
+    obligation = (await kaminoMarket.getObligationByWallet(user.publicKey, new VanillaObligation(PROGRAM_ID)))!;
+    assert.equal(obligation.state.elevationGroup, jitosolSolGroupNo);
+    assert.equal(obligation.isLoanEligibleForElevationGroup(kaminoMarket, slot, defaultElevationGroupNo), true);
+    assertFuzzyEq(obligation.loanToValue(), new Decimal(0.2));
+
+    // Now borrow more to go to 75% LTV
+    await borrow(env, kaminoMarket, user, 'SOL', new Decimal(2.75), true, undefined, jitosolSolGroupNo);
+    await sleep(2000);
+    obligation = (await kaminoMarket.getObligationByWallet(user.publicKey, new VanillaObligation(PROGRAM_ID)))!;
+    assert.equal(obligation.state.elevationGroup, jitosolSolGroupNo);
+    assert.equal(obligation.isLoanEligibleForElevationGroup(kaminoMarket, slot, jitosolSolGroupNo), true);
+    assert.equal(obligation.isLoanEligibleForElevationGroup(kaminoMarket, slot, defaultElevationGroupNo), false);
+    assertFuzzyEq(obligation.loanToValue(), new Decimal(0.75));
+
+    // Now repay to go below 70% LTV
+    await repay(env, kaminoMarket, user, 'SOL', new Decimal(0.26));
+    await sleep(2000);
+    obligation = (await kaminoMarket.getObligationByWallet(user.publicKey, new VanillaObligation(PROGRAM_ID)))!;
+    assert.equal(obligation.state.elevationGroup, jitosolSolGroupNo);
+    assert.equal(obligation.isLoanEligibleForElevationGroup(kaminoMarket, slot, jitosolSolGroupNo), true);
+    assert.equal(obligation.isLoanEligibleForElevationGroup(kaminoMarket, slot, defaultElevationGroupNo), true);
+    assertFuzzyEq(obligation.loanToValue(), new Decimal(0.6979));
   });
 });

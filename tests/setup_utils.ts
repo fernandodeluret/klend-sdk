@@ -866,6 +866,38 @@ export const borrow = async (
   await env.connection.confirmTransaction(txHash, 'confirmed');
 };
 
+export const repay = async (
+  env: Env,
+  kaminoMarket: KaminoMarket,
+  user: Keypair,
+  symbol: string,
+  amount: Decimal,
+  obligationType: ObligationType = new VanillaObligation(PROGRAM_ID)
+) => {
+  const reserve = kaminoMarket.getReserveBySymbol(symbol);
+  if (!reserve) {
+    throw new Error(`Reserve ${symbol} not found`);
+  }
+
+  const slot = await env.connection.getSlot();
+  const kaminoAction = await KaminoAction.buildRepayTxns(
+    kaminoMarket,
+    numberToLamportsDecimal(amount, reserve.stats.decimals).floor().toString(),
+    reserve.getLiquidityMint(),
+    user.publicKey,
+    obligationType,
+    slot
+  );
+
+  const tx = await buildVersionedTransaction(env.connection, user.publicKey, [
+    ...kaminoAction.setupIxs,
+    ...kaminoAction.lendingIxs,
+    ...kaminoAction.cleanupIxs,
+  ]);
+  const txHash = await buildAndSendTxnWithLogs(env.connection, tx, user, [], false, 'Repay');
+  await env.connection.confirmTransaction(txHash, 'confirmed');
+};
+
 export async function getLocalSwapIxs(
   env: Env,
   inputMintAmount: Decimal,

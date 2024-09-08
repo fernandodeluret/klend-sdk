@@ -1836,7 +1836,7 @@ export class KaminoAction {
           }
 
           console.log('newElevationGroup', newElevationGroup, addAsSupportIx);
-          if (newElevationGroup >= 0) {
+          if (newElevationGroup >= 0 && newElevationGroup !== this.obligation?.state.elevationGroup) {
             this.addRequestElevationIx(newElevationGroup, addAsSupportIx);
             this.addRefreshReserveIxs(allReservesExcludingCurrent, addAsSupportIx);
             this.addRefreshReserveIxs(currentReserveAddresses.toArray(), addAsSupportIx);
