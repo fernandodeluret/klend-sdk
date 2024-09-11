@@ -4,10 +4,10 @@
 // - [x] deposit and switch elevation group back and forth - with debt
 // - [x] borrow and switch elevation group back and forth - with no debt
 // - [x] borrow and switch elevation group back and forth - with debt
-// - [ ] test isLoanEligibleForElevationGroup()
-// - [ ] test getElevationGroupsForObligation()
-// - [ ] test getLiquidityAvailableForDebtReserveGivenCaps()
+// - [x] test isLoanEligibleForElevationGroup()
+// - [x] test getElevationGroupsForObligation()
 // - [ ] test getBorrowPower()
+// - [ ] test getLiquidityAvailableForDebtReserveGivenCaps()
 // - [ ] test getMaxBorrowAmountV2()
 // - TODO: remove all the toString()
 import { assert } from 'chai';
@@ -743,5 +743,138 @@ describe('isolated_and_cross_modes', () => {
     assert.equal(obligation.isLoanEligibleForElevationGroup(kaminoMarket, slot, jitosolSolGroupNo), true);
     assert.equal(obligation.isLoanEligibleForElevationGroup(kaminoMarket, slot, defaultElevationGroupNo), true);
     assertFuzzyEq(obligation.loanToValue(), new Decimal(0.6979));
+  });
+
+  it('get borrow power', async () => {
+    const env = await initEnv('localnet');
+    const [, market] = await createMarket(env);
+    const kaminoMarket = (await KaminoMarket.load(
+      env.connection,
+      market.publicKey,
+      DEFAULT_RECENT_SLOT_DURATION_MS,
+      PROGRAM_ID,
+      true
+    ))!;
+
+    await createScopeFeed(env, kaminoMarket.scope);
+    await sleep(2000);
+
+    const res = await Promise.all([addReserveToMarket(env, market, 'SOL'), addReserveToMarket(env, market, 'JITOSOL')]);
+
+    const { reserve: solReservePk, mint: solMint } = res[0];
+    const { reserve: jitosolReservePk } = res[1];
+    console.log('solReservePk', solReservePk.toString());
+    console.log('jitosolReservePk', jitosolReservePk.toString());
+
+    const jitosolSolGroupNo = 1;
+    const jitosolSolGroup = makeElevationGroupConfig(solReservePk, jitosolSolGroupNo); // JITOSOL collateral, SOL debt,
+    await Promise.all([updateMarketElevationGroup(env, market.publicKey, solReservePk, jitosolSolGroup)]); // 90% ltv, 95% liq ltv
+    await Promise.all([
+      updateReserveElevationGroups(env, solReservePk, [jitosolSolGroupNo]),
+      updateReserveElevationGroups(env, jitosolReservePk, [jitosolSolGroupNo]),
+      updateReserveLtv(env, kaminoMarket, jitosolReservePk, 70),
+      updateReserveLiquidationLtv(env, kaminoMarket, jitosolReservePk, 80),
+      updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [10_000_000_000]), // 10 SOL
+    ]);
+
+    await sleep(2000);
+
+    await kaminoMarket.reload();
+    const solReserve = kaminoMarket.getReserveByAddress(solReservePk)!;
+    const jitosolReserve = kaminoMarket.getReserveByAddress(jitosolReservePk)!;
+    console.log('SOL Price', solReserve.tokenOraclePrice.price);
+    console.log('JITOSOL Price', jitosolReserve.tokenOraclePrice.price);
+
+    const whale = await newUser(env, kaminoMarket, [['SOL', new Decimal(10)]]);
+    await deposit(env, kaminoMarket, whale, 'SOL', new Decimal(10), new VanillaObligation(PROGRAM_ID));
+
+    const user = await newUser(env, kaminoMarket, [
+      ['SOL', new Decimal(10)],
+      ['JITOSOL', new Decimal(10)],
+    ]);
+
+    const slot = await env.connection.getSlot();
+
+    await sleep(2000);
+    await deposit(env, kaminoMarket, user, 'JITOSOL', new Decimal(5), new VanillaObligation(PROGRAM_ID));
+
+    await sleep(2000);
+    const obligation = (await kaminoMarket.getObligationByWallet(user.publicKey, new VanillaObligation(PROGRAM_ID)))!;
+    const borrowPowerInCrossMode = obligation.getBorrowPower(kaminoMarket, solMint, slot, 0);
+    const borrowPowerInIsolatedMode = obligation.getBorrowPower(kaminoMarket, solMint, slot, 1);
+
+    console.log('Borrow Power in Cross Mode', borrowPowerInCrossMode); // Expected 70% of 5 SOL = 3.5 SOL
+    console.log('Borrow Power in Isolated Mode', borrowPowerInIsolatedMode); // Expected 90% of 5 SOL = 4.5 SOL
+
+    const decimalsSol = solReserve.getMintFactor();
+
+    assertFuzzyEq(borrowPowerInCrossMode.div(decimalsSol), new Decimal(3.5));
+    assertFuzzyEq(borrowPowerInIsolatedMode.div(decimalsSol), new Decimal(4.5));
+  });
+
+  // Test to test function `getMaxLoanLtvGivenElevationGroup`
+  it('get max loan ltv given elevation group', async () => {
+    const env = await initEnv('localnet');
+    const [, market] = await createMarket(env);
+    const kaminoMarket = (await KaminoMarket.load(
+      env.connection,
+      market.publicKey,
+      DEFAULT_RECENT_SLOT_DURATION_MS,
+      PROGRAM_ID,
+      true
+    ))!;
+
+    await createScopeFeed(env, kaminoMarket.scope);
+    await sleep(2000);
+
+    const res = await Promise.all([addReserveToMarket(env, market, 'SOL'), addReserveToMarket(env, market, 'JITOSOL')]);
+
+    const { reserve: solReservePk } = res[0];
+    const { reserve: jitosolReservePk } = res[1];
+    console.log('solReservePk', solReservePk.toString());
+    console.log('jitosolReservePk', jitosolReservePk.toString());
+
+    const jitosolSolGroupNo = 1;
+    const jitosolSolGroup = makeElevationGroupConfig(solReservePk, jitosolSolGroupNo); // JITOSOL collateral, SOL debt,
+    await Promise.all([updateMarketElevationGroup(env, market.publicKey, solReservePk, jitosolSolGroup)]); // 90% ltv, 95% liq ltv
+    await Promise.all([
+      updateReserveElevationGroups(env, solReservePk, [jitosolSolGroupNo]),
+      updateReserveElevationGroups(env, jitosolReservePk, [jitosolSolGroupNo]),
+      updateReserveLtv(env, kaminoMarket, jitosolReservePk, 70),
+      updateReserveLiquidationLtv(env, kaminoMarket, jitosolReservePk, 80),
+      updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [10_000_000_000]), // 10 SOL
+    ]);
+
+    await sleep(2000);
+
+    await kaminoMarket.reload();
+    const solReserve = kaminoMarket.getReserveByAddress(solReservePk)!;
+    const jitosolReserve = kaminoMarket.getReserveByAddress(jitosolReservePk)!;
+    console.log('SOL Price', solReserve.tokenOraclePrice.price);
+    console.log('JITOSOL Price', jitosolReserve.tokenOraclePrice.price);
+
+    const whale = await newUser(env, kaminoMarket, [['SOL', new Decimal(10)]]);
+    await deposit(env, kaminoMarket, whale, 'SOL', new Decimal(10), new VanillaObligation(PROGRAM_ID));
+
+    const user = await newUser(env, kaminoMarket, [
+      ['SOL', new Decimal(10)],
+      ['JITOSOL', new Decimal(10)],
+    ]);
+
+    const slot = await env.connection.getSlot();
+
+    await sleep(2000);
+    await deposit(env, kaminoMarket, user, 'JITOSOL', new Decimal(5), new VanillaObligation(PROGRAM_ID));
+
+    await sleep(2000);
+    const obligation = (await kaminoMarket.getObligationByWallet(user.publicKey, new VanillaObligation(PROGRAM_ID)))!;
+    const maxLtvInElevationGroup0 = obligation.getMaxLoanLtvGivenElevationGroup(kaminoMarket, 0, slot);
+    const maxLtvInElevationGroup2 = obligation.getMaxLoanLtvGivenElevationGroup(kaminoMarket, 1, slot);
+
+    console.log('Max LTV in Elevation Group 0', maxLtvInElevationGroup0); // Expected 90%
+    console.log('Max LTV in Elevation Group 1', maxLtvInElevationGroup2); // Expected 70%
+
+    assertFuzzyEq(maxLtvInElevationGroup0, new Decimal(0.7));
+    assertFuzzyEq(maxLtvInElevationGroup2, new Decimal(0.9));
   });
 });

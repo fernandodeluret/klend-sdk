@@ -891,6 +891,25 @@ export class KaminoObligation {
     };
   }
 
+  getMaxLoanLtvGivenElevationGroup(market: KaminoMarket, elevationGroup: number, slot: number): Decimal {
+    const getOraclePx = (reserve: KaminoReserve) => reserve.getOracleMarketPrice();
+    const { collateralExchangeRates } = KaminoObligation.getRatesForObligation(market, this.state, slot);
+
+    const { borrowLimit, userTotalDeposit } = KaminoObligation.calculateObligationDeposits(
+      market,
+      this.state,
+      collateralExchangeRates,
+      elevationGroup,
+      getOraclePx
+    );
+
+    if (borrowLimit.eq(0) || userTotalDeposit.eq(0)) {
+      return new Decimal(0);
+    }
+
+    return borrowLimit.div(userTotalDeposit);
+  }
+
   /* 
     How much of a given token can a user borrow extra given an elevation group, 
     regardless of caps and liquidity or assuming infinite liquidity and infinite caps,
