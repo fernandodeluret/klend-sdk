@@ -14,6 +14,7 @@ import { assert } from 'chai';
 import {
   createMarket,
   updateMarketElevationGroup,
+  updateReserveBorrowFactor,
   updateReserveBorrowLimit,
   updateReserveBorrowLimitOutsideEmode,
   updateReserveBorrowLimitsAgainstCollInElevationGroup,
@@ -35,7 +36,7 @@ import {
   sendTransactionsFromAction,
 } from './setup_utils';
 import { createScopeFeed } from './kamino/scope';
-import { sleep } from '@kamino-finance/kliquidity-sdk';
+import { collToLamportsDecimal, sleep } from '@kamino-finance/kliquidity-sdk';
 import {
   BorrowCapsAndCounters,
   DEFAULT_RECENT_SLOT_DURATION_MS,
@@ -876,5 +877,367 @@ describe('isolated_and_cross_modes', () => {
 
     assertFuzzyEq(maxLtvInElevationGroup0, new Decimal(0.7));
     assertFuzzyEq(maxLtvInElevationGroup2, new Decimal(0.9));
+  });
+
+  it('get simulated stats with elevation group change on deposit', async () => {
+    const env = await initEnv('localnet');
+    const [, market] = await createMarket(env);
+    const kaminoMarket = (await KaminoMarket.load(
+      env.connection,
+      market.publicKey,
+      DEFAULT_RECENT_SLOT_DURATION_MS,
+      PROGRAM_ID,
+      true
+    ))!;
+
+    await createScopeFeed(env, kaminoMarket.scope);
+    await sleep(2000);
+
+    const res = await Promise.all([addReserveToMarket(env, market, 'SOL'), addReserveToMarket(env, market, 'JITOSOL')]);
+
+    const { reserve: solReservePk, mint: solMint } = res[0];
+    const { reserve: jitosolReservePk, mint: jitosolMint } = res[1];
+    console.log('solReservePk', solReservePk.toString());
+    console.log('jitosolReservePk', jitosolReservePk.toString());
+
+    const defaultElevationGroupNo = 0;
+    const jitosolSolGroupNo = 1;
+    const jitosolSolGroup = makeElevationGroupConfig(solReservePk, jitosolSolGroupNo); // JITOSOL collateral, SOL debt,
+    await Promise.all([updateMarketElevationGroup(env, market.publicKey, solReservePk, jitosolSolGroup)]); // 90% ltv, 95% liq ltv
+    await Promise.all([
+      updateReserveElevationGroups(env, solReservePk, [jitosolSolGroupNo]),
+      updateReserveElevationGroups(env, jitosolReservePk, [jitosolSolGroupNo]),
+      updateReserveLtv(env, kaminoMarket, jitosolReservePk, 70),
+      updateReserveLiquidationLtv(env, kaminoMarket, jitosolReservePk, 80),
+      updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [10_000_000_000]), // 10 SOL
+      updateReserveBorrowFactor(env, kaminoMarket, solReservePk, 200),
+    ]);
+
+    await sleep(2000);
+
+    await kaminoMarket.reload();
+    const solReserve = kaminoMarket.getReserveByAddress(solReservePk)!;
+    const jitosolReserve = kaminoMarket.getReserveByAddress(jitosolReservePk)!;
+    const jitosolDecimals = jitosolReserve.state.liquidity.mintDecimals.toNumber();
+    const solDecimals = solReserve.state.liquidity.mintDecimals.toNumber();
+    console.log('SOL Price', solReserve.tokenOraclePrice.price);
+    console.log('JITOSOL Price', jitosolReserve.tokenOraclePrice.price);
+
+    const whale = await newUser(env, kaminoMarket, [['SOL', new Decimal(10)]]);
+    await deposit(env, kaminoMarket, whale, 'SOL', new Decimal(10), new VanillaObligation(PROGRAM_ID));
+
+    const user = await newUser(env, kaminoMarket, [
+      ['SOL', new Decimal(10)],
+      ['JITOSOL', new Decimal(10)],
+    ]);
+
+    // User deposits 5 JITOSOL and borrows 1 SOL
+    await sleep(2000);
+    await deposit(env, kaminoMarket, user, 'JITOSOL', new Decimal(5), new VanillaObligation(PROGRAM_ID));
+
+    await sleep(2000);
+    await borrow(env, kaminoMarket, user, 'SOL', new Decimal(1));
+
+    await sleep(2000);
+    const obligation = (await kaminoMarket.getObligationByWallet(user.publicKey, new VanillaObligation(PROGRAM_ID)))!;
+
+    const slot = await env.connection.getSlot();
+
+    // (1 * 2)/5 = 0.4 because SOL has borrow factor of 200%
+    assert.equal(obligation.state.elevationGroup, defaultElevationGroupNo);
+    assertFuzzyEq(obligation.loanToValue(), new Decimal(0.4));
+    {
+      // Simulate depositing more collateral, default stay in elevation group 0
+      const simulatedStats = obligation.getSimulatedObligationStats({
+        amountCollateral: collToLamportsDecimal(new Decimal(1), jitosolDecimals),
+        action: 'deposit',
+        mintCollateral: jitosolMint,
+        market: kaminoMarket,
+        reserves: kaminoMarket.reserves,
+        slot,
+      });
+
+      // (1 * 2) / (5 + 1) = 0.3333333333333333
+      assertFuzzyEq(simulatedStats.stats.loanToValue, new Decimal(0.333333333));
+    }
+
+    {
+      // Simulate depositing more collateral, explicitly override to same elevation group 0
+      const simulatedStats = obligation.getSimulatedObligationStats({
+        amountCollateral: collToLamportsDecimal(new Decimal(1), jitosolDecimals),
+        action: 'deposit',
+        mintCollateral: jitosolMint,
+        market: kaminoMarket,
+        reserves: kaminoMarket.reserves,
+        elevationGroupOverride: defaultElevationGroupNo,
+        slot,
+      });
+
+      // (1 * 2) / 6 = 0.3333333333333333
+      assertFuzzyEq(simulatedStats.stats.loanToValue, new Decimal(0.333333333));
+    }
+
+    {
+      // Simulate depositing more collateral, go to elevation group 1
+      const simulatedStats = obligation.getSimulatedObligationStats({
+        amountCollateral: collToLamportsDecimal(new Decimal(1), jitosolDecimals),
+        action: 'deposit',
+        mintCollateral: jitosolMint,
+        market: kaminoMarket,
+        reserves: kaminoMarket.reserves,
+        elevationGroupOverride: jitosolSolGroupNo,
+        slot,
+      });
+
+      // 1 / 6 = 0.16666666666666666 because borrow factor here becomes 1 in elevation group
+      assertFuzzyEq(simulatedStats.stats.loanToValue, new Decimal(0.16666666666666666));
+    }
+
+    {
+      // Simulate borrowing, default stay in elevation group 0
+      const simulatedStats = obligation.getSimulatedObligationStats({
+        amountDebt: collToLamportsDecimal(new Decimal(1), solDecimals),
+        action: 'borrow',
+        mintDebt: solMint,
+        market: kaminoMarket,
+        reserves: kaminoMarket.reserves,
+        slot,
+      });
+
+      // ((1 + 1) * 2)/5  = 0.8
+      assertFuzzyEq(simulatedStats.stats.loanToValue, new Decimal(0.8));
+    }
+
+    {
+      // Simulate borrowing, explicitly choose elevation group 0
+      const simulatedStats = obligation.getSimulatedObligationStats({
+        amountDebt: collToLamportsDecimal(new Decimal(1), solDecimals),
+        action: 'borrow',
+        mintDebt: solMint,
+        market: kaminoMarket,
+        reserves: kaminoMarket.reserves,
+        slot,
+        elevationGroupOverride: defaultElevationGroupNo,
+      });
+
+      // ((1 + 1) * 2)/5  = 0.8
+      assertFuzzyEq(simulatedStats.stats.loanToValue, new Decimal(0.8));
+    }
+
+    {
+      // Simulate borrowing, go to elevation group 1
+      const simulatedStats = obligation.getSimulatedObligationStats({
+        amountDebt: collToLamportsDecimal(new Decimal(1), solDecimals),
+        action: 'borrow',
+        mintDebt: solMint,
+        market: kaminoMarket,
+        reserves: kaminoMarket.reserves,
+        slot,
+        elevationGroupOverride: jitosolSolGroupNo,
+      });
+
+      // ((1 + 1) * 1)/5 = 0.4, here borrow factor is 1
+      assertFuzzyEq(simulatedStats.stats.loanToValue, new Decimal(0.4));
+    }
+
+    {
+      // Simulate repay, default stay in elevation group 0
+      const simulatedStats = obligation.getSimulatedObligationStats({
+        amountDebt: collToLamportsDecimal(new Decimal(0.5), solDecimals),
+        action: 'repay',
+        mintDebt: solMint,
+        market: kaminoMarket,
+        reserves: kaminoMarket.reserves,
+        slot,
+      });
+
+      // ((1 - 0.5) * 2)/5 = 0.2
+      assertFuzzyEq(simulatedStats.stats.loanToValue, new Decimal(0.2));
+    }
+
+    {
+      // Simulate repay, default stay in elevation group 0
+      const simulatedStats = obligation.getSimulatedObligationStats({
+        amountDebt: collToLamportsDecimal(new Decimal(0.5), solDecimals),
+        action: 'repay',
+        mintDebt: solMint,
+        market: kaminoMarket,
+        reserves: kaminoMarket.reserves,
+        slot,
+        elevationGroupOverride: defaultElevationGroupNo,
+      });
+
+      // ((1 - 0.5) * 2)/5 = 0.2
+      assertFuzzyEq(simulatedStats.stats.loanToValue, new Decimal(0.2));
+    }
+
+    {
+      // Simulate repay, go to elevation group 1
+      const simulatedStats = obligation.getSimulatedObligationStats({
+        amountDebt: collToLamportsDecimal(new Decimal(0.5), solDecimals),
+        action: 'repay',
+        mintDebt: solMint,
+        market: kaminoMarket,
+        reserves: kaminoMarket.reserves,
+        slot,
+        elevationGroupOverride: jitosolSolGroupNo,
+      });
+
+      // ((1 - 0.5) * 1)/5 = 0.1
+      assertFuzzyEq(simulatedStats.stats.loanToValue, new Decimal(0.1));
+    }
+
+    {
+      // Simulate withdraw some collateral, default stay in elevation group 0
+      const simulatedStats = obligation.getSimulatedObligationStats({
+        amountCollateral: collToLamportsDecimal(new Decimal(1), jitosolDecimals),
+        action: 'withdraw',
+        mintCollateral: jitosolMint,
+        market: kaminoMarket,
+        reserves: kaminoMarket.reserves,
+        slot,
+      });
+
+      // (1 * 2) / (5 - 1)  = 0.5
+      assertFuzzyEq(simulatedStats.stats.loanToValue, new Decimal(0.5));
+    }
+
+    {
+      // Simulate withdraw some collateral, explicitly choose elevation group 0
+      const simulatedStats = obligation.getSimulatedObligationStats({
+        amountCollateral: collToLamportsDecimal(new Decimal(1), jitosolDecimals),
+        action: 'withdraw',
+        mintCollateral: jitosolMint,
+        market: kaminoMarket,
+        reserves: kaminoMarket.reserves,
+        slot,
+        elevationGroupOverride: defaultElevationGroupNo,
+      });
+
+      // (1 * 2) / (5 - 1)  = 0.5
+      assertFuzzyEq(simulatedStats.stats.loanToValue, new Decimal(0.5));
+    }
+
+    {
+      // Simulate withdraw some collateral, explicitly choose elevation group 1
+      const simulatedStats = obligation.getSimulatedObligationStats({
+        amountCollateral: collToLamportsDecimal(new Decimal(1), jitosolDecimals),
+        action: 'withdraw',
+        mintCollateral: jitosolMint,
+        market: kaminoMarket,
+        reserves: kaminoMarket.reserves,
+        slot,
+        elevationGroupOverride: jitosolSolGroupNo,
+      });
+
+      // (1 * 1) / (5 - 1) = 0.25
+      assertFuzzyEq(simulatedStats.stats.loanToValue, new Decimal(0.25));
+    }
+
+    {
+      // Simulate deposit and borrow, default stay in elevation group 0
+      const simulatedStats = obligation.getSimulatedObligationStats({
+        amountCollateral: collToLamportsDecimal(new Decimal(1), jitosolDecimals),
+        amountDebt: collToLamportsDecimal(new Decimal(1), solDecimals),
+        action: 'depositAndBorrow',
+        mintCollateral: jitosolMint,
+        mintDebt: solMint,
+        market: kaminoMarket,
+        reserves: kaminoMarket.reserves,
+        slot,
+      });
+
+      // ((1 + 1) * 2) / (5 + 1) = 0.6666666666666666
+      assertFuzzyEq(simulatedStats.stats.loanToValue, new Decimal(0.6666666666666666));
+    }
+
+    {
+      // Simulate deposit and borrow, explicitly choose elevation group 0
+      const simulatedStats = obligation.getSimulatedObligationStats({
+        amountCollateral: collToLamportsDecimal(new Decimal(1), jitosolDecimals),
+        amountDebt: collToLamportsDecimal(new Decimal(1), solDecimals),
+        action: 'depositAndBorrow',
+        mintCollateral: jitosolMint,
+        mintDebt: solMint,
+        market: kaminoMarket,
+        reserves: kaminoMarket.reserves,
+        slot,
+        elevationGroupOverride: defaultElevationGroupNo,
+      });
+
+      // ((1 + 1) * 2) / (5 + 1) = 0.6666666666666666
+      assertFuzzyEq(simulatedStats.stats.loanToValue, new Decimal(0.6666666666666666));
+    }
+
+    {
+      // Simulate deposit and borrow, explicitly choose elevation group 1
+      const simulatedStats = obligation.getSimulatedObligationStats({
+        amountCollateral: collToLamportsDecimal(new Decimal(1), jitosolDecimals),
+        amountDebt: collToLamportsDecimal(new Decimal(1), solDecimals),
+        action: 'depositAndBorrow',
+        mintCollateral: jitosolMint,
+        mintDebt: solMint,
+        market: kaminoMarket,
+        reserves: kaminoMarket.reserves,
+        slot,
+        elevationGroupOverride: jitosolSolGroupNo,
+      });
+
+      // ((1 + 1) * 1) / (5 + 1) = 0.3333333333333333
+      assertFuzzyEq(simulatedStats.stats.loanToValue, new Decimal(0.3333333333333333));
+    }
+
+    {
+      // Simulate withdraw and repay, default stay in elevation group 0
+      const simulatedStats = obligation.getSimulatedObligationStats({
+        amountCollateral: collToLamportsDecimal(new Decimal(1), jitosolDecimals),
+        amountDebt: collToLamportsDecimal(new Decimal(0.5), solDecimals),
+        action: 'repayAndWithdraw',
+        mintCollateral: jitosolMint,
+        mintDebt: solMint,
+        market: kaminoMarket,
+        reserves: kaminoMarket.reserves,
+        slot,
+      });
+
+      // ((1 - 0.5) * 2) / (5 - 1)  = 0.25
+      assertFuzzyEq(simulatedStats.stats.loanToValue, new Decimal(0.25));
+    }
+
+    {
+      // Simulate withdraw and repay, explicitly choose elevation group 0
+      const simulatedStats = obligation.getSimulatedObligationStats({
+        amountCollateral: collToLamportsDecimal(new Decimal(1), jitosolDecimals),
+        amountDebt: collToLamportsDecimal(new Decimal(0.5), solDecimals),
+        action: 'repayAndWithdraw',
+        mintCollateral: jitosolMint,
+        mintDebt: solMint,
+        market: kaminoMarket,
+        reserves: kaminoMarket.reserves,
+        slot,
+        elevationGroupOverride: defaultElevationGroupNo,
+      });
+
+      // ((1 - 0.5) * 2) / (5 - 1)  = 0.25
+      assertFuzzyEq(simulatedStats.stats.loanToValue, new Decimal(0.25));
+    }
+
+    {
+      // Simulate withdraw and repay, explicitly choose elevation group 1
+      const simulatedStats = obligation.getSimulatedObligationStats({
+        amountCollateral: collToLamportsDecimal(new Decimal(1), jitosolDecimals),
+        amountDebt: collToLamportsDecimal(new Decimal(0.5), solDecimals),
+        action: 'repayAndWithdraw',
+        mintCollateral: jitosolMint,
+        mintDebt: solMint,
+        market: kaminoMarket,
+        reserves: kaminoMarket.reserves,
+        slot,
+        elevationGroupOverride: jitosolSolGroupNo,
+      });
+
+      // ((1 - 0.5) * 1) / (5 - 1) = 0.125
+      assertFuzzyEq(simulatedStats.stats.loanToValue, new Decimal(0.125));
+    }
   });
 });

@@ -309,6 +309,19 @@ export async function updateReserveBorrowLimitsAgainstCollInElevationGroup(
   return updateReserveConfigSingle(env, market, reserveAddress, mode, value);
 }
 
+export async function updateReserveBorrowFactor(
+  env: Env,
+  market: KaminoMarket,
+  reserveAddress: PublicKey,
+  borrowFactorPct: number
+): Promise<TransactionSignature> {
+  // TODO: revert the +1 when the enum is updated to be indexed at 0
+  const mode = UpdateConfigMode.UpdateBorrowFactor.discriminator + 1;
+  const value = updateReserveConfigEncodedValue(UpdateConfigMode.UpdateBorrowFactor.discriminator, borrowFactorPct);
+
+  return updateReserveConfigSingle(env, market, reserveAddress, mode, value);
+}
+
 export async function updateReserveDebtNetWithdrawalCap(
   env: Env,
   market: KaminoMarket,

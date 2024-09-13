@@ -258,14 +258,12 @@ describe('Main lending market instruction tests', function () {
 
     const [createMarketSig, lendingMarket] = await createMarket(env);
     console.log(createMarketSig);
-    await sleep(2000);
 
     const usdh = await createMint(env, env.admin.publicKey, 6);
     await sleep(2000);
     const [, usdhReserve] = await createReserve(env, lendingMarket.publicKey, usdh);
-    await sleep(2000);
-
     const [, solReserve] = await createReserve(env, lendingMarket.publicKey, NATIVE_MINT);
+
     await sleep(2000);
 
     await updateMarketElevationGroup(env, lendingMarket.publicKey, usdhReserve.publicKey);
@@ -370,6 +368,8 @@ describe('Main lending market instruction tests', function () {
 
     await sleep(2000);
 
+    const slot = await env.connection.getSlot();
+
     const obligation = await kaminoMarket.getObligationByWallet(env.admin.publicKey, new VanillaObligation(PROGRAM_ID));
     assert.equal(obligation?.state.elevationGroup, 1);
     assert.equal(obligation?.getNumberOfPositions(), 2);
@@ -383,6 +383,7 @@ describe('Main lending market instruction tests', function () {
       mintCollateral: WRAPPED_SOL_MINT,
       market: kaminoMarket,
       reserves: kaminoMarket.reserves,
+      slot,
     });
 
     assert.ok(newStatsPostDeposit.loanToValue < prevStats.loanToValue);
@@ -393,6 +394,7 @@ describe('Main lending market instruction tests', function () {
       mintCollateral: WRAPPED_SOL_MINT,
       market: kaminoMarket,
       reserves: kaminoMarket.reserves,
+      slot,
     });
 
     assert.ok(newStatsPostWithdraw.loanToValue > prevStats.loanToValue);
@@ -403,6 +405,7 @@ describe('Main lending market instruction tests', function () {
       mintDebt: usdh,
       market: kaminoMarket,
       reserves: kaminoMarket.reserves,
+      slot,
     });
 
     assert.ok(newStatsPostBorrow.loanToValue > prevStats.loanToValue);
@@ -413,6 +416,7 @@ describe('Main lending market instruction tests', function () {
       mintDebt: usdh,
       market: kaminoMarket,
       reserves: kaminoMarket.reserves,
+      slot,
     });
 
     assert.ok(newStatsPostRepay.loanToValue < prevStats.loanToValue);
