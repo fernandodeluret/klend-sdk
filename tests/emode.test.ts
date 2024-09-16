@@ -6,8 +6,9 @@
 // - [x] borrow and switch elevation group back and forth - with debt
 // - [x] test isLoanEligibleForElevationGroup()
 // - [x] test getElevationGroupsForObligation()
-// - [ ] test getBorrowPower()
-// - [ ] test getLiquidityAvailableForDebtReserveGivenCaps()
+// - [x] test getLiquidityAvailableForDebtReserveGivenCaps()
+// - [wip] test getElevationGroupsForReservesCombination()
+// - [wip] test getBorrowPower()
 // - [ ] test getMaxBorrowAmountV2()
 // - TODO: remove all the toString()
 import { assert } from 'chai';
@@ -42,6 +43,7 @@ import {
   DEFAULT_RECENT_SLOT_DURATION_MS,
   KaminoAction,
   KaminoMarket,
+  lamportsToNumberDecimal,
   PROGRAM_ID,
   VanillaObligation,
 } from '../src';
@@ -607,9 +609,7 @@ describe('isolated_and_cross_modes', () => {
     await sleep(2000);
 
     const solReserve = kaminoMarket.getReserveByAddress(solReservePk);
-    const borrowCaps = await solReserve!.getBorrowCapForReserve(kaminoMarket);
-
-    console.log('Borrow Caps', borrowCaps);
+    const solBorrowCaps = await solReserve!.getBorrowCapForReserve(kaminoMarket);
 
     const expectedBorrowCaps: BorrowCapsAndCounters = {
       utilizationCap: new Decimal(0.8), // 80%
@@ -632,29 +632,422 @@ describe('isolated_and_cross_modes', () => {
       ],
     };
 
-    assert(borrowCaps.utilizationCap.equals(expectedBorrowCaps.utilizationCap));
-    assertFuzzyEq(borrowCaps.utilizationCurrentValue, expectedBorrowCaps.utilizationCurrentValue);
+    assert(solBorrowCaps.utilizationCap.equals(expectedBorrowCaps.utilizationCap));
+    assertFuzzyEq(solBorrowCaps.utilizationCurrentValue, expectedBorrowCaps.utilizationCurrentValue);
 
-    assert(borrowCaps.netWithdrawalCap.equals(expectedBorrowCaps.netWithdrawalCap));
-    assert(borrowCaps.netWithdrawalCurrentValue.equals(expectedBorrowCaps.netWithdrawalCurrentValue));
-    // assert(borrowCaps.netWithdrawalLastUpdateTs.equals(expectedBorrowCaps.netWithdrawalLastUpdateTs));
+    assert(solBorrowCaps.netWithdrawalCap.equals(expectedBorrowCaps.netWithdrawalCap));
+    assert(solBorrowCaps.netWithdrawalCurrentValue.equals(expectedBorrowCaps.netWithdrawalCurrentValue));
+    // assert(solBorrowCaps.netWithdrawalLastUpdateTs.equals(expectedBorrowCaps.netWithdrawalLastUpdateTs));
     assert(
-      borrowCaps.netWithdrawalIntervalDurationSeconds.equals(expectedBorrowCaps.netWithdrawalIntervalDurationSeconds)
+      solBorrowCaps.netWithdrawalIntervalDurationSeconds.equals(expectedBorrowCaps.netWithdrawalIntervalDurationSeconds)
     );
 
-    assert(borrowCaps.globalDebtCap.equals(expectedBorrowCaps.globalDebtCap));
-    assertFuzzyEq(borrowCaps.globalTotalBorrowed, expectedBorrowCaps.globalTotalBorrowed);
+    assert(solBorrowCaps.globalDebtCap.equals(expectedBorrowCaps.globalDebtCap));
+    assertFuzzyEq(solBorrowCaps.globalTotalBorrowed, expectedBorrowCaps.globalTotalBorrowed);
 
-    assert(borrowCaps.debtOutsideEmodeCap.equals(expectedBorrowCaps.debtOutsideEmodeCap));
-    assert(borrowCaps.borrowedOutsideEmode.equals(expectedBorrowCaps.borrowedOutsideEmode));
+    assert(solBorrowCaps.debtOutsideEmodeCap.equals(expectedBorrowCaps.debtOutsideEmodeCap));
+    assert(solBorrowCaps.borrowedOutsideEmode.equals(expectedBorrowCaps.borrowedOutsideEmode));
 
-    for (let i = 0; i < borrowCaps.debtAgainstCollateralReserveCaps.length; i++) {
-      const actual = borrowCaps.debtAgainstCollateralReserveCaps[i];
+    for (let i = 0; i < solBorrowCaps.debtAgainstCollateralReserveCaps.length; i++) {
+      const actual = solBorrowCaps.debtAgainstCollateralReserveCaps[i];
       const expected = expectedBorrowCaps.debtAgainstCollateralReserveCaps[i];
       assert(actual.collateralReserve.equals(expected.collateralReserve));
       assert(actual.elevationGroup === expected.elevationGroup);
       assert(actual.maxDebt.equals(expected.maxDebt));
       assert(actual.currentValue.equals(expected.currentValue));
+    }
+  });
+
+  it('get liquidity available given caps', async () => {
+    // TODO: check for `is_borrowing_disabled` in smart contracts
+    // TODO: check for `check_elevation_group_borrowing_enabled` in smart contracts
+    // TODO: check for `check_non_elevation_group_borrowing_enabled` in smart contracts
+    const env = await initEnv('localnet');
+    const [, market] = await createMarket(env);
+    const kaminoMarket = (await KaminoMarket.load(
+      env.connection,
+      market.publicKey,
+      DEFAULT_RECENT_SLOT_DURATION_MS,
+      PROGRAM_ID,
+      true
+    ))!;
+
+    await createScopeFeed(env, kaminoMarket.scope);
+    await sleep(2000);
+
+    const res = await Promise.all([
+      addReserveToMarket(env, market, 'SOL'),
+      addReserveToMarket(env, market, 'JITOSOL'),
+      addReserveToMarket(env, market, 'MSOL'),
+    ]);
+
+    const { reserve: solReservePk } = res[0];
+    const { reserve: jitosolReservePk } = res[1];
+    const { reserve: msolReservePk } = res[2];
+
+    const defaultElevationGroupNo = 0;
+    const jitosolSolGroupNo = 1;
+    const msolSolGroupNo = 2;
+
+    const jitosolSolGroup = makeElevationGroupConfig(solReservePk, jitosolSolGroupNo); // JITOSOL collateral, SOL debt
+    const msolSolReserveGroup = makeElevationGroupConfig(msolReservePk, msolSolGroupNo); // MSOL collateral, SOL debt
+
+    console.log('solReservePk', solReservePk.toString());
+    console.log('jitosolReservePk', jitosolReservePk.toString());
+    console.log('msolReservePk', msolReservePk.toString());
+
+    await Promise.all([
+      updateMarketElevationGroup(env, market.publicKey, solReservePk, jitosolSolGroup),
+      updateMarketElevationGroup(env, market.publicKey, solReservePk, msolSolReserveGroup),
+    ]);
+
+    await Promise.all([
+      updateReserveElevationGroups(env, solReservePk, [jitosolSolGroupNo, msolSolGroupNo]),
+      updateReserveElevationGroups(env, jitosolReservePk, [jitosolSolGroupNo]),
+      updateReserveElevationGroups(env, msolReservePk, [msolSolGroupNo]),
+    ]);
+
+    await sleep(2000);
+    await kaminoMarket.reload();
+
+    // SOL whale deposits, JITOSOL user deposits
+    const whale = await newUser(env, kaminoMarket, [['SOL', new Decimal(10)]]);
+    const user = await newUser(env, kaminoMarket, [['JITOSOL', new Decimal(10)]]);
+    await deposit(env, kaminoMarket, whale, 'SOL', new Decimal(10), new VanillaObligation(PROGRAM_ID));
+    await deposit(env, kaminoMarket, user, 'JITOSOL', new Decimal(5), new VanillaObligation(PROGRAM_ID));
+    await sleep(2000);
+
+    // Settings we will test
+    // - liquidity available
+    // - global debt limit
+    // - outside elevation mode debt limit
+    // - inside elevation mode debt limit
+    // - net withdrawal cap
+    // - utilization cap
+    // - borrow to remove some liquidity
+
+    // await updateReserveBorrowLimit(env, kaminoMarket, solReservePk, 2_000_000_000); // 2.0 SOL
+    // await updateReserveBorrowLimitOutsideEmode(env, kaminoMarket, solReservePk, 1_500_000_000); // 1.5 SOL
+    // await updateReserveUtilizationCap(env, kaminoMarket, solReservePk, 80);
+    // await updateReserveDebtNetWithdrawalCap(env, kaminoMarket, solReservePk, sol(3.5).toNumber(), 500); // 3.5 SOL every 500 seconds
+    // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [500_000_000]); // 0.5 SOL
+    // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, msolReservePk, [100_000_000]); // 0.1 SOL
+    // Borrow 1 SOL, to remove some available liquidity
+    // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(1));
+    // Borrow 0.5 SOL, to remove some available liquidity
+    // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+    // Borrow 0.5 SOL, to remove some available liquidity
+    // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+
+    await kaminoMarket.reload();
+    let rsrv = kaminoMarket.getReserveByAddress(solReservePk)!;
+    const sol = (x: number) => collToLamportsDecimal(new Decimal(x), rsrv!.state.liquidity.mintDecimals.toNumber());
+    const revSol = (x: Decimal) => lamportsToNumberDecimal(x, rsrv!.state.liquidity.mintDecimals.toNumber());
+    const groups = [defaultElevationGroupNo, jitosolSolGroupNo, msolSolGroupNo];
+
+    {
+      const res = await rsrv.getLiquidityAvailableForDebtReserveGivenCaps(kaminoMarket, groups);
+      assert.equal(res.length, groups.length);
+      assertFuzzyEq(res[0], sol(10));
+      assertFuzzyEq(res[1], sol(0)); // emodes still have 0 debt caps
+      assertFuzzyEq(res[2], sol(0)); // emodes still have 0 debt caps
+    }
+
+    {
+      await updateReserveBorrowLimit(env, kaminoMarket, solReservePk, sol(2).toNumber()); // 2.0 SOL
+      // await updateReserveBorrowLimitOutsideEmode(env, kaminoMarket, solReservePk, 1_500_000_000); // 1.5 SOL
+      // await updateReserveUtilizationCap(env, kaminoMarket, solReservePk, 80);
+      // await updateReserveDebtNetWithdrawalCap(env, kaminoMarket, solReservePk, sol(3.5).toNumber(), 500); // 3.5 SOL every 500 seconds
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [500_000_000]); // 0.5 SOL
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, msolReservePk, [100_000_000]); // 0.1 SOL
+      // Borrow 1 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(1));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+
+      await sleep(2000);
+      await kaminoMarket.reload();
+      rsrv = kaminoMarket.getReserveByAddress(solReservePk)!;
+
+      const res = await rsrv.getLiquidityAvailableForDebtReserveGivenCaps(kaminoMarket, groups);
+      assert.equal(res.length, groups.length);
+      assertFuzzyEq(res[0], sol(2));
+      assertFuzzyEq(res[1], sol(0)); // emodes still have 0 debt caps
+      assertFuzzyEq(res[2], sol(0)); // emodes still have 0 debt caps
+
+      // Raise it back to much higher
+      await updateReserveBorrowLimit(env, kaminoMarket, solReservePk, sol(100000).toNumber()); // 2.0 SOL
+    }
+
+    {
+      // await updateReserveBorrowLimit(env, kaminoMarket, solReservePk, sol(2).toNumber()); // 2.0 SOL
+      await updateReserveBorrowLimitOutsideEmode(env, kaminoMarket, solReservePk, sol(1.5).toNumber()); // 1.5 SOL
+      // await updateReserveUtilizationCap(env, kaminoMarket, solReservePk, 80);
+      // await updateReserveDebtNetWithdrawalCap(env, kaminoMarket, solReservePk, sol(3.5).toNumber(), 500); // 3.5 SOL every 500 seconds
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [500_000_000]); // 0.5 SOL
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, msolReservePk, [100_000_000]); // 0.1 SOL
+      // Borrow 1 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(1));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+
+      await sleep(2000);
+      await kaminoMarket.reload();
+      rsrv = kaminoMarket.getReserveByAddress(solReservePk)!;
+
+      const res = await rsrv.getLiquidityAvailableForDebtReserveGivenCaps(kaminoMarket, groups);
+      assert.equal(res.length, groups.length);
+      assertFuzzyEq(res[0], sol(1.5));
+      assertFuzzyEq(res[1], sol(0)); // emodes still have 0 debt caps
+      assertFuzzyEq(res[2], sol(0)); // emodes still have 0 debt caps
+
+      // Raise it back to much higher
+      await updateReserveBorrowLimitOutsideEmode(env, kaminoMarket, solReservePk, sol(100000).toNumber()); // 1.5 SOL
+    }
+
+    {
+      // await updateReserveBorrowLimit(env, kaminoMarket, solReservePk, sol(2).toNumber()); // 2.0 SOL
+      // await updateReserveBorrowLimitOutsideEmode(env, kaminoMarket, solReservePk, sol(1.5).toNumber()); // 1.5 SOL
+      await updateReserveUtilizationCap(env, kaminoMarket, solReservePk, 65);
+      // await updateReserveDebtNetWithdrawalCap(env, kaminoMarket, solReservePk, sol(3.5).toNumber(), 500); // 3.5 SOL every 500 seconds
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [500_000_000]); // 0.5 SOL
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, msolReservePk, [100_000_000]); // 0.1 SOL
+      // Borrow 1 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(1));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+
+      await sleep(2000);
+      await kaminoMarket.reload();
+      rsrv = kaminoMarket.getReserveByAddress(solReservePk)!;
+
+      const res = await rsrv.getLiquidityAvailableForDebtReserveGivenCaps(kaminoMarket, groups);
+      assert.equal(res.length, groups.length);
+      assertFuzzyEq(res[0], sol(6.5));
+      assertFuzzyEq(res[1], sol(0)); // emodes still have 0 debt caps
+      assertFuzzyEq(res[2], sol(0)); // emodes still have 0 debt caps
+
+      // Raise it back to much higher
+      await updateReserveUtilizationCap(env, kaminoMarket, solReservePk, 100);
+    }
+
+    {
+      // await updateReserveBorrowLimit(env, kaminoMarket, solReservePk, sol(2).toNumber()); // 2.0 SOL
+      // await updateReserveBorrowLimitOutsideEmode(env, kaminoMarket, solReservePk, sol(1.5).toNumber()); // 1.5 SOL
+      // await updateReserveUtilizationCap(env, kaminoMarket, solReservePk, 65);
+      await updateReserveDebtNetWithdrawalCap(env, kaminoMarket, solReservePk, sol(3.5).toNumber(), 500); // 3.5 SOL every 500 seconds
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [500_000_000]); // 0.5 SOL
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, msolReservePk, [100_000_000]); // 0.1 SOL
+      // Borrow 1 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(1));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+
+      await sleep(2000);
+      await kaminoMarket.reload();
+      rsrv = kaminoMarket.getReserveByAddress(solReservePk)!;
+
+      const res = await rsrv.getLiquidityAvailableForDebtReserveGivenCaps(kaminoMarket, groups);
+      assert.equal(res.length, groups.length);
+      assertFuzzyEq(res[0], sol(3.5));
+      assertFuzzyEq(res[1], sol(0)); // emodes still have 0 debt caps
+      assertFuzzyEq(res[2], sol(0)); // emodes still have 0 debt caps
+
+      // Raise it back to much higher
+      await updateReserveDebtNetWithdrawalCap(env, kaminoMarket, solReservePk, sol(100000).toNumber(), 500); // 3.5 SOL every 500 seconds
+    }
+
+    {
+      // await updateReserveBorrowLimit(env, kaminoMarket, solReservePk, sol(2).toNumber()); // 2.0 SOL
+      // await updateReserveBorrowLimitOutsideEmode(env, kaminoMarket, solReservePk, sol(1.5).toNumber()); // 1.5 SOL
+      // await updateReserveUtilizationCap(env, kaminoMarket, solReservePk, 65);
+      // await updateReserveDebtNetWithdrawalCap(env, kaminoMarket, solReservePk, sol(3.5).toNumber(), 500); // 3.5 SOL every 500 seconds
+      await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [
+        sol(9.3).toNumber(),
+        0,
+      ]);
+      await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, msolReservePk, [
+        0,
+        sol(9.7).toNumber(),
+      ]);
+      // Borrow 1 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(1));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+
+      await sleep(2000);
+      await kaminoMarket.reload();
+      rsrv = kaminoMarket.getReserveByAddress(solReservePk)!;
+
+      const res = await rsrv.getLiquidityAvailableForDebtReserveGivenCaps(kaminoMarket, groups);
+      assert.equal(res.length, groups.length);
+      assertFuzzyEq(res[0], sol(10));
+      assertFuzzyEq(res[1], sol(9.3));
+      assertFuzzyEq(res[2], sol(9.7));
+    }
+
+    {
+      // await updateReserveBorrowLimit(env, kaminoMarket, solReservePk, sol(2).toNumber()); // 2.0 SOL
+      // await updateReserveBorrowLimitOutsideEmode(env, kaminoMarket, solReservePk, sol(1.5).toNumber()); // 1.5 SOL
+      // await updateReserveUtilizationCap(env, kaminoMarket, solReservePk, 65);
+      // await updateReserveDebtNetWithdrawalCap(env, kaminoMarket, solReservePk, sol(3.5).toNumber(), 500); // 3.5 SOL every 500 seconds
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [ sol(9.3).toNumber(), 0,]);
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, msolReservePk, [ 0, sol(9.7).toNumber(),]);
+      // Borrow 1 SOL, to remove some available liquidity
+      await borrow(env, kaminoMarket, user, 'SOL', new Decimal(1));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+
+      await sleep(2000);
+      await kaminoMarket.reload();
+      rsrv = kaminoMarket.getReserveByAddress(solReservePk)!;
+
+      const res = await rsrv.getLiquidityAvailableForDebtReserveGivenCaps(kaminoMarket, groups);
+      assert.equal(res.length, groups.length);
+      assertFuzzyEq(res[0], sol(9.0));
+      assertFuzzyEq(res[1], sol(9.0));
+      assertFuzzyEq(res[2], sol(9.0));
+    }
+
+    {
+      // await updateReserveBorrowLimit(env, kaminoMarket, solReservePk, sol(2).toNumber()); // 2.0 SOL
+      // await updateReserveBorrowLimitOutsideEmode(env, kaminoMarket, solReservePk, sol(1.5).toNumber()); // 1.5 SOL
+      // await updateReserveUtilizationCap(env, kaminoMarket, solReservePk, 65);
+      // await updateReserveDebtNetWithdrawalCap(env, kaminoMarket, solReservePk, sol(3.5).toNumber(), 500); // 3.5 SOL every 500 seconds
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [ sol(9.3).toNumber(), 0,]);
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, msolReservePk, [ 0, sol(9.7).toNumber(),]);
+      // Borrow 1 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(1));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(1));
+
+      await sleep(2000);
+      await kaminoMarket.reload();
+      rsrv = kaminoMarket.getReserveByAddress(solReservePk)!;
+
+      const res = await rsrv.getLiquidityAvailableForDebtReserveGivenCaps(kaminoMarket, groups);
+      assert.equal(res.length, groups.length);
+      assertFuzzyEq(res[0], sol(8.5));
+      assertFuzzyEq(res[1], sol(8.5));
+      assertFuzzyEq(res[2], sol(8.5));
+    }
+
+    {
+      // await updateReserveBorrowLimit(env, kaminoMarket, solReservePk, sol(2).toNumber()); // 2.0 SOL
+      // await updateReserveBorrowLimitOutsideEmode(env, kaminoMarket, solReservePk, sol(1.5).toNumber()); // 1.5 SOL
+      // await updateReserveUtilizationCap(env, kaminoMarket, solReservePk, 65);
+      // await updateReserveDebtNetWithdrawalCap(env, kaminoMarket, solReservePk, sol(3.5).toNumber(), 500); // 3.5 SOL every 500 seconds
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [ sol(9.3).toNumber(), 0,]);
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, msolReservePk, [ 0, sol(9.7).toNumber(),]);
+      // Borrow 1 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(1));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+
+      await sleep(2000);
+      await kaminoMarket.reload();
+      rsrv = kaminoMarket.getReserveByAddress(solReservePk)!;
+
+      const res = await rsrv.getLiquidityAvailableForDebtReserveGivenCaps(kaminoMarket, groups);
+      assert.equal(res.length, groups.length);
+      assertFuzzyEq(res[0], sol(8.0));
+      assertFuzzyEq(res[1], sol(8.0));
+      assertFuzzyEq(res[2], sol(8.0));
+    }
+
+    // Now add the caps back, one after the other
+    {
+      // These have to be set together because borrow_limit cannot be < borrow_limit_outside_elevation_group
+      await updateReserveBorrowLimitOutsideEmode(env, kaminoMarket, solReservePk, sol(7).toNumber()); // 1.5 SOL
+      await updateReserveBorrowLimit(env, kaminoMarket, solReservePk, sol(7).toNumber()); // 2.0 SOL
+      // await updateReserveUtilizationCap(env, kaminoMarket, solReservePk, 65);
+      // await updateReserveDebtNetWithdrawalCap(env, kaminoMarket, solReservePk, sol(3.5).toNumber(), 500); // 3.5 SOL every 500 seconds
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [ sol(9.3).toNumber(), 0,]);
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, msolReservePk, [ 0, sol(9.7).toNumber(),]);
+      // Borrow 1 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(1));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+
+      await sleep(2000);
+      await kaminoMarket.reload();
+      rsrv = kaminoMarket.getReserveByAddress(solReservePk)!;
+
+      const res = await rsrv.getLiquidityAvailableForDebtReserveGivenCaps(kaminoMarket, groups);
+      assert.equal(res.length, groups.length);
+      assertFuzzyEq(revSol(res[0]), 5.0, 0.00001); // 10 available - 2 borrowed = total debt = 2, max debt = 7 => max more borrowable 5
+      assertFuzzyEq(revSol(res[1]), 5.0, 0.00001);
+      assertFuzzyEq(revSol(res[2]), 5.0, 0.00001);
+    }
+
+    {
+      // These have to be set together because borrow_limit cannot be < borrow_limit_outside_elevation_group
+      await updateReserveBorrowLimitOutsideEmode(env, kaminoMarket, solReservePk, sol(7).toNumber()); // 1.5 SOL
+      await updateReserveBorrowLimit(env, kaminoMarket, solReservePk, sol(7).toNumber()); // 2.0 SOL
+      await updateReserveUtilizationCap(env, kaminoMarket, solReservePk, 65);
+      // await updateReserveDebtNetWithdrawalCap(env, kaminoMarket, solReservePk, sol(3.5).toNumber(), 500); // 3.5 SOL every 500 seconds
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [ sol(9.3).toNumber(), 0,]);
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, msolReservePk, [ 0, sol(9.7).toNumber(),]);
+      // Borrow 1 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(1));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+
+      await sleep(2000);
+      await kaminoMarket.reload();
+      rsrv = kaminoMarket.getReserveByAddress(solReservePk)!;
+
+      const res = await rsrv.getLiquidityAvailableForDebtReserveGivenCaps(kaminoMarket, groups);
+      assert.equal(res.length, groups.length);
+      assertFuzzyEq(revSol(res[0]), 4.5, 0.0001);
+      assertFuzzyEq(revSol(res[1]), 4.5, 0.0001);
+      assertFuzzyEq(revSol(res[2]), 4.5, 0.0001);
+    }
+
+    {
+      // These have to be set together because borrow_limit cannot be < borrow_limit_outside_elevation_group
+      await updateReserveBorrowLimitOutsideEmode(env, kaminoMarket, solReservePk, sol(7).toNumber()); // 1.5 SOL
+      await updateReserveBorrowLimit(env, kaminoMarket, solReservePk, sol(7).toNumber()); // 2.0 SOL
+      await updateReserveUtilizationCap(env, kaminoMarket, solReservePk, 65);
+      await updateReserveDebtNetWithdrawalCap(env, kaminoMarket, solReservePk, sol(3.5).toNumber(), 500); // 3.5 SOL every 500 seconds
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, jitosolReservePk, [ sol(9.3).toNumber(), 0,]);
+      // await updateReserveBorrowLimitsAgainstCollInElevationGroup(env, kaminoMarket, msolReservePk, [ 0, sol(9.7).toNumber(),]);
+      // Borrow 1 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(1));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+      // Borrow 0.5 SOL, to remove some available liquidity
+      // await borrow(env, kaminoMarket, user, 'SOL', new Decimal(0.5));
+
+      await sleep(2000);
+      await kaminoMarket.reload();
+      rsrv = kaminoMarket.getReserveByAddress(solReservePk)!;
+
+      const res = await rsrv.getLiquidityAvailableForDebtReserveGivenCaps(kaminoMarket, groups);
+      assert.equal(res.length, groups.length);
+      assertFuzzyEq(res[0], sol(1.5)); // max net daily 3.5, 2 already borroed => 1.5 remaining
+      assertFuzzyEq(res[1], sol(1.5));
+      assertFuzzyEq(res[2], sol(1.5));
     }
   });
 
@@ -746,7 +1139,7 @@ describe('isolated_and_cross_modes', () => {
     assertFuzzyEq(obligation.loanToValue(), new Decimal(0.6979));
   });
 
-  it('get borrow power', async () => {
+  it('get borrow power simple', async () => {
     const env = await initEnv('localnet');
     const [, market] = await createMarket(env);
     const kaminoMarket = (await KaminoMarket.load(

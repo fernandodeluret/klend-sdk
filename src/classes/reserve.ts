@@ -23,7 +23,7 @@ import {
 import { ReserveDataType, ReserveFarmInfo, ReserveRewardYield, ReserveStatus } from './shared';
 import { Reserve, ReserveFields } from '../idl_codegen/accounts';
 import { BorrowRateCurve, CurvePointFields, ReserveConfig, UpdateConfigMode } from '../idl_codegen/types';
-import { calculateAPYFromAPR, getBorrowRate, lamportsToNumberDecimal, parseTokenSymbol } from './utils';
+import { calculateAPYFromAPR, getBorrowRate, lamportsToNumberDecimal, parseTokenSymbol, positiveOrZero } from './utils';
 import { Fraction } from './fraction';
 import BN from 'bn.js';
 import { ActionType } from './action';
@@ -999,35 +999,41 @@ export class KaminoReserve {
       utilizationRatioLimit.minus(currentUtilizationRatio)
     );
 
-    const remainingDailyCap = caps.netWithdrawalCap.minus(caps.netWithdrawalCurrentValue);
+    const remainingDailyCap = caps.netWithdrawalIntervalDurationSeconds.eq(new Decimal(0))
+      ? new Decimal(U64_MAX)
+      : caps.netWithdrawalCap.minus(caps.netWithdrawalCurrentValue);
+
     const remainingGlobalCap = caps.globalDebtCap.minus(caps.globalTotalBorrowed);
     const remainingOutsideEmodeCap = caps.debtOutsideEmodeCap.minus(caps.borrowedOutsideEmode);
-    const availableInCrossMode = Decimal.min(
-      liquidityAvailable,
-      liquidityGivenUtilizationCap,
-      remainingDailyCap,
-      remainingGlobalCap,
-      remainingOutsideEmodeCap
-    );
 
-    const availableInElevationGroups = elevationGroups
-      .filter((x) => x !== 0)
-      .map((elevationGroup) => {
-        const capsForElevationGroup = caps.debtAgainstCollateralReserveCaps.filter(
-          (x) => x.elevationGroup === elevationGroup
+    const available = elevationGroups.map((elevationGroup) => {
+      if (elevationGroup === 0) {
+        const availableInCrossMode = Decimal.min(
+          positiveOrZero(liquidityAvailable),
+          positiveOrZero(remainingOutsideEmodeCap),
+          positiveOrZero(remainingDailyCap),
+          positiveOrZero(remainingGlobalCap),
+          positiveOrZero(liquidityGivenUtilizationCap)
         );
-        const liquidityAvailableInElevationGroup = Decimal.min(
-          ...capsForElevationGroup.map((x) => x.maxDebt.minus(x.currentValue))
+
+        return availableInCrossMode;
+      } else {
+        const remainingInsideEmodeCaps = Decimal.min(
+          ...caps.debtAgainstCollateralReserveCaps
+            .filter((x) => x.elevationGroup === elevationGroup)
+            .map((x) => x.maxDebt.minus(x.currentValue))
         );
         return Decimal.min(
-          liquidityAvailableInElevationGroup,
-          remainingDailyCap,
-          remainingGlobalCap,
-          liquidityGivenUtilizationCap
+          positiveOrZero(liquidityAvailable),
+          positiveOrZero(remainingInsideEmodeCaps),
+          positiveOrZero(remainingDailyCap),
+          positiveOrZero(remainingGlobalCap),
+          positiveOrZero(liquidityGivenUtilizationCap)
         );
-      });
+      }
+    });
 
-    return [availableInCrossMode, ...availableInElevationGroups];
+    return available;
   }
 }
 
