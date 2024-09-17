@@ -29,11 +29,11 @@ import {
   UpdateReserveConfigAccounts,
   UpdateReserveConfigArgs,
   updateReserveConfigEncodedValue,
-} from '../src';
-import { buildAndSendTxnWithLogs, buildVersionedTransaction } from '../src/utils';
+} from '../../src';
+import { buildAndSendTxnWithLogs, buildVersionedTransaction } from '../../src/utils';
 import { Env } from './setup_utils';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { ElevationGroupFields, ReserveConfig, UpdateConfigMode } from '../src/idl_codegen/types';
+import { ElevationGroupFields, ReserveConfig, UpdateConfigMode } from '../../src/idl_codegen/types';
 import { BN } from '@coral-xyz/anchor';
 import { createAddExtraComputeUnitsIx } from '@kamino-finance/kliquidity-sdk';
 

@@ -1,7 +1,12 @@
-import { Env, createLookupTable, initEnv, makeReserveConfig, sendTransactionsFromAction } from '../setup_utils';
-import { createMarket, createReserve, updateReserve } from '../setup_operations';
-import { addRewardToFarm, initializeFarmsForReserve, topUpRewardToFarm, updateRps } from '../farms_operations';
-import { createAta, createMint, mintTo } from '../token_utils';
+import { Env, createLookupTable, initEnv, makeReserveConfig, sendTransactionsFromAction } from '../runner/setup_utils';
+import { createMarket, createReserve, updateReserve } from '../runner/setup_operations';
+import {
+  addRewardToFarm,
+  initializeFarmsForReserve,
+  topUpRewardToFarm,
+  updateRps,
+} from '../runner/farms/farms_operations';
+import { createAta, createMint, mintTo } from '../runner/token_utils';
 import Decimal from 'decimal.js';
 import { DEFAULT_RECENT_SLOT_DURATION_MS, KaminoAction, KaminoMarket, PROGRAM_ID, Reserve } from '../../src';
 import { sleep, VanillaObligation } from '../../src';

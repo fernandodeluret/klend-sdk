@@ -1,11 +1,16 @@
 import { Keypair, PublicKey } from '@solana/web3.js';
 import { MultiplyObligation, sleep, toJson } from '../src';
-import { WSOL_MINT, depositLeverageTestAdapter, getPriceMock, withdrawLeverageTestAdapter } from './leverage_utils';
-import { setupStrategyAndMarketWithInitialLiquidity, newUser, balance } from './setup_utils';
+import {
+  WSOL_MINT,
+  depositLeverageTestAdapter,
+  getPriceMock,
+  withdrawLeverageTestAdapter,
+} from './runner/leverage_utils';
+import { setupStrategyAndMarketWithInitialLiquidity, newUser, balance } from './runner/setup_utils';
 import Decimal from 'decimal.js';
 import { assert } from 'chai';
-import { assertFuzzyEq } from './assert';
-import { reloadReservesAndRefreshMarket } from './setup_operations';
+import { assertFuzzyEq } from './runner/assert';
+import { reloadReservesAndRefreshMarket } from './runner/setup_operations';
 
 describe('Leverage kTokens withdrawal tests', function () {
   it('deposit_and_withdraw_first_time_with_leverage_non_sol_token_deposit_coll_debt_spl', async function () {

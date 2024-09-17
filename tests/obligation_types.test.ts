@@ -1,4 +1,11 @@
-import { borrow, createMarketWithTwoReserves, deposit, newUser, reloadRefreshedMarket, round } from './setup_utils';
+import {
+  borrow,
+  createMarketWithTwoReserves,
+  deposit,
+  newUser,
+  reloadRefreshedMarket,
+  round,
+} from './runner/setup_utils';
 import Decimal from 'decimal.js';
 import * as assert from 'assert';
 import {

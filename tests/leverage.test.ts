@@ -6,7 +6,7 @@ import {
   deposit,
   newUser,
   swapLocal,
-} from './setup_utils';
+} from './runner/setup_utils';
 import Decimal from 'decimal.js';
 import * as assert from 'assert';
 import { MultiplyObligation, sleep } from '../src';
@@ -28,10 +28,10 @@ import {
   depositLeverageTestAdapter,
   getPriceMock,
   withdrawLeverageTestAdapter,
-} from './leverage_utils';
-import { assertSwapInputsMatch } from './assert';
+} from './runner/leverage_utils';
+import { assertSwapInputsMatch } from './runner/assert';
 import { lamportsToNumberDecimal } from '../src/classes/utils';
-import { updateReserveSingleValue } from './setup_operations';
+import { updateReserveSingleValue } from './runner/setup_operations';
 import { UpdateConfigMode } from '../src/idl_codegen/types';
 import { collToLamportsDecimal } from '@kamino-finance/kliquidity-sdk';
 import { fuzzyEq } from '../src/leverage/calcs';

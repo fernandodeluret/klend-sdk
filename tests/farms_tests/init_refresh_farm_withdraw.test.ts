@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { getObligationFarmState, initializeFarmsForReserve } from '../farms_operations';
+import { getObligationFarmState, initializeFarmsForReserve } from '../runner/farms/farms_operations';
 import {
   borrow,
   createLookupTable,
@@ -7,10 +7,10 @@ import {
   deposit,
   newUser,
   sendTransactionsFromAction,
-} from '../setup_utils';
+} from '../runner/setup_utils';
 import { KaminoAction, PROGRAM_ID, VanillaObligation, numberToLamportsDecimal, sleep } from '../../src';
 import Decimal from 'decimal.js';
-import { reloadReservesAndRefreshMarket } from '../setup_operations';
+import { reloadReservesAndRefreshMarket } from '../runner/setup_operations';
 
 describe('init_and_refresh_farm_withdraw_tests', function () {
   it('init_refresh_farm_withdraw_coll_farm_only', async function () {

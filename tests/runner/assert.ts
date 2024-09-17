@@ -1,4 +1,4 @@
-import { SwapInputs, fuzzyEq, sleep } from '../src';
+import { SwapInputs, fuzzyEq, sleep } from '../../src';
 import { AssertionError, assert } from 'chai';
 import Decimal from 'decimal.js';
 

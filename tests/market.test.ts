@@ -33,15 +33,15 @@ import {
   makeReserveConfig,
   newUser,
   sendTransactionsFromAction,
-} from './setup_utils';
+} from './runner/setup_utils';
 import {
   createMarket,
   createReserve,
   updateMarketElevationGroup,
   updateReserve,
   updateReserveSingleValue,
-} from './setup_operations';
-import { createAta, createMint, mintTo } from './token_utils';
+} from './runner/setup_operations';
+import { createAta, createMint, mintTo } from './runner/token_utils';
 import { NATIVE_MINT, TOKEN_2022_PROGRAM_ID } from '@solana/spl-token';
 import { ReserveConfig, UpdateConfigMode } from '../src/idl_codegen/types';
 import { Fraction } from '../src/classes/fraction';

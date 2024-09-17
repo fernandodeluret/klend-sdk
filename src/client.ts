@@ -17,8 +17,8 @@ import { Reserve } from './idl_codegen/accounts';
 import { buildAndSendTxnWithLogs, buildVersionedTransaction } from './utils/instruction';
 import { VanillaObligation } from './utils/ObligationType';
 import { parseTokenSymbol } from './classes/utils';
-import { Env, initEnv } from '../tests/setup_utils';
-import { initializeFarmsForReserve } from '../tests/farms_operations';
+import { Env, initEnv } from '../tests/runner/setup_utils';
+import { initializeFarmsForReserve } from '../tests/runner/farms/farms_operations';
 
 const STAGING_LENDING_MARKET = new PublicKey('6WVSwDQXrBZeQVnu6hpnsRZhodaJTZBUaC334SiiBKdb');
 const MAINNET_LENDING_MARKET = new PublicKey('7u3HeHxYDLhnCoErrtycNokbQYbWGzLs6JSDqGAv5PfF');

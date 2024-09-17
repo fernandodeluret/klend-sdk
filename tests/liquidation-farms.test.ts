@@ -6,7 +6,7 @@ import {
   Env,
   newUser,
   sendTransactionsFromAction,
-} from './setup_utils';
+} from './runner/setup_utils';
 import {
   buildVersionedTransaction,
   extendLookupTableIxs,
@@ -18,12 +18,12 @@ import {
 } from '../src';
 import { sleep } from '@hubbleprotocol/farms-sdk';
 import Decimal from 'decimal.js';
-import { updateReserve } from './setup_operations';
+import { updateReserve } from './runner/setup_operations';
 import { ReserveConfig } from '../src/idl_codegen/types';
-import { waitUntilMatches } from './assert';
+import { waitUntilMatches } from './runner/assert';
 import { expect } from 'chai';
 import { Keypair, PublicKey } from '@solana/web3.js';
-import { initializeFarmsForReserve } from './farms_operations';
+import { initializeFarmsForReserve } from './runner/farms/farms_operations';
 
 describe('liquidation_farms', function () {
   it('liquidate_loan_with_coll_farm_on_loan_coll', async function () {

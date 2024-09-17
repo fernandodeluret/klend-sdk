@@ -2,7 +2,7 @@ import { Keypair, PublicKey } from '@solana/web3.js';
 import Decimal from 'decimal.js';
 import { Env, createLookupTable, getLocalSwapIxs } from './setup_utils';
 import { Kamino } from '@kamino-finance/kliquidity-sdk';
-import { MultiplyObligation, ObligationTypeTag } from '../src/utils/ObligationType';
+import { MultiplyObligation, ObligationTypeTag } from '../../src/utils/ObligationType';
 import { isKToken } from './kamino/utils';
 import {
   getDepositWithLeverageIxns,
@@ -11,12 +11,12 @@ import {
   PriceAinBProvider,
   SwapIxnsProvider,
   IsKtokenProvider,
-} from '../src/leverage/operations';
-import { KaminoMarket } from '../src/classes/market';
-import { getUserLutAddressAndSetupIxns } from '../src/utils/userMetadata';
-import { buildVersionedTransaction, sendAndConfirmVersionedTransaction } from '../src/utils/instruction';
-import { lamportsToNumberDecimal as fromLamports, sleep } from '../src/classes/utils';
-import { KaminoReserve } from '../src/classes/reserve';
+} from '../../src/leverage/operations';
+import { KaminoMarket } from '../../src/classes/market';
+import { getUserLutAddressAndSetupIxns } from '../../src/utils/userMetadata';
+import { buildVersionedTransaction, sendAndConfirmVersionedTransaction } from '../../src/utils/instruction';
+import { lamportsToNumberDecimal as fromLamports, sleep } from '../../src/classes/utils';
+import { KaminoReserve } from '../../src/classes/reserve';
 
 export const pk = () => Keypair.generate().publicKey;
 export const USDC_MINT = pk();

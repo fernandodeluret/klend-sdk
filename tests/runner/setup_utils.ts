@@ -41,7 +41,7 @@ import {
   U64_MAX,
   VanillaObligation,
   WRAPPED_SOL_MINT,
-} from '../src';
+} from '../../src';
 import {
   BorrowRateCurve,
   BorrowRateCurveFields,
@@ -56,7 +56,7 @@ import {
   SwitchboardConfiguration,
   TokenInfo,
   WithdrawalCaps,
-} from '../src/idl_codegen/types';
+} from '../../src/idl_codegen/types';
 import { createMarket, createReserve, updateMarketElevationGroup, updateReserve } from './setup_operations';
 import { createAta, createMint, getBurnFromIx, getMintToIx, mintTo } from './token_utils';
 import {
@@ -79,7 +79,7 @@ import {
 import { OracleType, Scope, U16_MAX } from '@hubbleprotocol/scope-sdk';
 import { addKTokenScopePriceMapping, createScopeFeed } from './kamino/scope';
 import { Kamino } from '@kamino-finance/kliquidity-sdk';
-import { Fraction, ZERO_FRACTION } from '../src/classes/fraction';
+import { Fraction, ZERO_FRACTION } from '../../src/classes/fraction';
 
 export type Cluster = 'localnet' | 'devnet' | 'mainnet-beta';
 export const pythUsdcPrice = new PublicKey('Gnt27xtC473ZT2Mw5u8wZ68Z3gULkSTb5DuxJy7eJotD');
@@ -207,7 +207,7 @@ export const makeElevationGroupConfig = (debtReserve: PublicKey, id: number): El
 export const makeReserveConfig = (tokenName: string, params: ConfigParams = DefaultConfigParams) => {
   const pythUsdcPrice = new PublicKey('Gnt27xtC473ZT2Mw5u8wZ68Z3gULkSTb5DuxJy7eJotD');
   const pythMSolPrice = new PublicKey('E4v1BBgoso9s64TQvmyownAVJbhbEPGyzA3qn4n46qj9');
-  const priceToOracleMap = {
+  const priceToOracleMap: Record<string, PublicKey> = {
     SOL: pythMSolPrice,
     STSOL: pythMSolPrice,
     MSOL: pythMSolPrice,
@@ -1045,7 +1045,7 @@ export const getLocalKaminoSwapper = async (env: Env) => {
     owner: PublicKey,
     _slippage: Decimal,
     _allKeys: PublicKey[]
-  ) => {
+  ): Promise<[TransactionInstruction[], PublicKey[]]> => {
     const aDecimals = (await getMint(env.connection, tokenAMint)).decimals;
     const bDecimals = (await getMint(env.connection, tokenBMint)).decimals;
 
@@ -1078,6 +1078,7 @@ export const getLocalKaminoSwapper = async (env: Env) => {
       );
     } else {
       console.log('Edge case');
+      return [[], []];
     }
   };
 };

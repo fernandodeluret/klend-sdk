@@ -17,13 +17,13 @@ import {
   WSOL_MINT,
   getJupiterPrice,
   getPriceByTokenMintDecimal,
-} from './leverage_utils';
+} from './runner/leverage_utils';
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
-import { assertFuzzyEq } from './assert';
+import { assertFuzzyEq } from './runner/assert';
 import { Kamino, StrategyWithAddress, TokenAmounts } from '@kamino-finance/kliquidity-sdk';
 import { WhirlpoolStrategy } from '@kamino-finance/kliquidity-sdk/dist/kamino-client/accounts';
 import { BN } from 'bn.js';
-import { WhirlpoolStrategyFields } from '@kamino-finance/kliquidity-sdk/src/kamino-client/accounts/WhirlpoolStrategy';
+import { WhirlpoolStrategyFields } from '@kamino-finance/kliquidity-sdk/dist/kamino-client/accounts/WhirlpoolStrategy';
 
 describe('Leverage calculation tests', function () {
   it('calculate_given_deposit_and_leverage_in_debt_token', async function () {
@@ -786,6 +786,19 @@ function strategyWithHoldings(
 
 function emptyStrategyFields(): WhirlpoolStrategyFields {
   return {
+    deprecated0: [],
+    deprecated1: [],
+    deprecated2: PublicKey.default,
+    pendingAdmin: PublicKey.default,
+    rebalancesCap: {
+      configCapacity: new BN('0'),
+      currentTotal: new BN('0'),
+      lastIntervalStartTimestamp: new BN('0'),
+      configIntervalLengthSeconds: new BN('0'),
+    },
+    swapUnevenAuthority: PublicKey.default,
+    tokenATokenProgram: PublicKey.default,
+    tokenBTokenProgram: PublicKey.default,
     adminAuthority: PublicKey.default,
     globalConfig: PublicKey.default,
     baseVaultAuthority: PublicKey.default,
@@ -801,10 +814,6 @@ function emptyStrategyFields(): WhirlpoolStrategyFields {
     positionTokenAccount: PublicKey.default,
     tokenAVault: PublicKey.default,
     tokenBVault: PublicKey.default,
-    tokenAVaultAuthority: PublicKey.default,
-    tokenBVaultAuthority: PublicKey.default,
-    tokenAVaultAuthorityBump: new BN('0'),
-    tokenBVaultAuthorityBump: new BN('0'),
     tokenAMint: PublicKey.default,
     tokenBMint: PublicKey.default,
     tokenAMintDecimals: new BN('0'),
@@ -814,7 +823,6 @@ function emptyStrategyFields(): WhirlpoolStrategyFields {
     tokenACollateralId: new BN('0'),
     tokenBCollateralId: new BN('0'),
     scopePrices: PublicKey.default,
-    scopeProgram: PublicKey.default,
     sharesMint: PublicKey.default,
     sharesMintDecimals: new BN('0'),
     sharesMintAuthority: PublicKey.default,

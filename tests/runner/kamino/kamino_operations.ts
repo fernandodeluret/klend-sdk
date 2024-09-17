@@ -49,7 +49,7 @@ import {
   KaminoMarket,
   lamportsToNumberDecimal,
   sendAndConfirmVersionedTransaction,
-} from '../../src';
+} from '../../../src';
 import { WSOL_MINT } from '../leverage_utils';
 import { getMintToIx } from '../token_utils';
 
@@ -703,11 +703,11 @@ export async function mintToUser(
   mintAuthority: Keypair,
   mintIntoWsolAta: boolean = false,
   tokenProgram: PublicKey = TOKEN_PROGRAM_ID
-) {
+): Promise<string> {
   if (mint.equals(WSOL_MINT)) {
     const [ata, ix] = createAssociatedTokenAccountIdempotentInstruction(user, mint, user);
 
-    await env.connection.requestAirdrop(user, amountLamports);
+    const airdrop = await env.connection.requestAirdrop(user, amountLamports);
     await sleep(3000);
 
     if (mintIntoWsolAta) {
@@ -725,7 +725,9 @@ export async function mintToUser(
         'Wsol ATA topup'
       );
       await env.connection.confirmTransaction(txHash, 'confirmed');
+      return txHash;
     }
+    return airdrop;
   } else {
     const [ata, ix] = createAssociatedTokenAccountIdempotentInstruction(
       user,
@@ -737,7 +739,6 @@ export async function mintToUser(
 
     const tx = await buildVersionedTransaction(env.connection, env.admin.publicKey, [ix, instruction]);
 
-    const sig = await buildAndSendTxnWithLogs(env.connection, tx, env.wallet.payer, [mintAuthority]);
-    return sig;
+    return buildAndSendTxnWithLogs(env.connection, tx, env.wallet.payer, [mintAuthority]);
   }
 }

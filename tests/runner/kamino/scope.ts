@@ -4,7 +4,7 @@ import { StrategyWithAddress } from '@kamino-finance/kliquidity-sdk';
 import Decimal from 'decimal.js';
 import { getPriceAcc, Price, PriceFeed } from './price';
 import { Env } from '../setup_utils';
-import { isNotNullPubkey } from '../../src';
+import { isNotNullPubkey } from '../../../src';
 
 export async function crankAndFetchScopePrice(env: Env, scope: Scope, chain: number[]): Promise<Decimal> {
   const trimmed: number[] = [...chain];

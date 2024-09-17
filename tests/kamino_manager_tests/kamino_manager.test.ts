@@ -1,4 +1,4 @@
-import { initEnv, pythMSolPrice, pythUsdcPrice } from '../setup_utils';
+import { initEnv, pythMSolPrice, pythUsdcPrice } from '../runner/setup_utils';
 import Decimal from 'decimal.js';
 import {
   buildAndSendTxn,
@@ -15,7 +15,7 @@ import {
   sleep,
 } from '../../src/lib';
 import { KaminoVault, KaminoVaultConfig, ReserveAllocationConfig } from '../../src/classes/vault';
-import { createMint } from '../token_utils';
+import { createMint } from '../runner/token_utils';
 import { NATIVE_MINT, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import {
   createMarketWithTwoAssets,

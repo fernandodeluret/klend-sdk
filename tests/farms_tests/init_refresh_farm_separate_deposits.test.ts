@@ -1,13 +1,13 @@
 import { assert } from 'chai';
 import { KaminoAction, PROGRAM_ID, VanillaObligation, numberToLamportsDecimal, sleep } from '../../src';
-import { getObligationFarmState, initializeFarmsForReserve } from '../farms_operations';
+import { getObligationFarmState, initializeFarmsForReserve } from '../runner/farms/farms_operations';
 import {
   deposit,
   sendTransactionsFromAction,
   borrow,
   newUser,
   createMarketWithTwoReservesToppedUp,
-} from '../setup_utils';
+} from '../runner/setup_utils';
 import Decimal from 'decimal.js';
 
 describe('init_and_refresh_farm_separate_deposit_tests', function () {

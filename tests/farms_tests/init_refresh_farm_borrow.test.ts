@@ -1,9 +1,9 @@
 import { assert } from 'chai';
 import { VanillaObligation, fuzzyEq, sleep } from '../../src';
-import { getObligationFarmState, initializeFarmsForReserve } from '../farms_operations';
-import { borrow, createMarketWithTwoReservesToppedUp, deposit, newUser } from '../setup_utils';
+import { getObligationFarmState, initializeFarmsForReserve } from '../runner/farms/farms_operations';
+import { borrow, createMarketWithTwoReservesToppedUp, deposit, newUser } from '../runner/setup_utils';
 import Decimal from 'decimal.js';
-import { reloadReservesAndRefreshMarket } from '../setup_operations';
+import { reloadReservesAndRefreshMarket } from '../runner/setup_operations';
 
 describe('init_and_refresh_farm_borrow_tests', function () {
   it('init_refresh_farm_borrow_coll_farm_only', async function () {

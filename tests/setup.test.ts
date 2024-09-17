@@ -1,8 +1,8 @@
-import { initEnv, makeReserveConfig, newUser, sendTransactionsFromAction } from './setup_utils';
-import { createMarket, createReserve, updateReserve } from './setup_operations';
+import { initEnv, makeReserveConfig, newUser, sendTransactionsFromAction } from './runner/setup_utils';
+import { createMarket, createReserve, updateReserve } from './runner/setup_operations';
 import { DEFAULT_RECENT_SLOT_DURATION_MS, KaminoAction, KaminoMarket, PROGRAM_ID, sleep } from '../src';
 import { lendingMarketAuthPda, VanillaObligation } from '../src/utils';
-import { createAta, createMint, mintTo } from './token_utils';
+import { createAta, createMint, mintTo } from './runner/token_utils';
 import { expect } from 'chai';
 import { PublicKey } from '@solana/web3.js';
 import Decimal from 'decimal.js';

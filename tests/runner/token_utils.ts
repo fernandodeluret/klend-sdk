@@ -1,17 +1,19 @@
-import { Keypair, PublicKey, TransactionInstruction, TransactionSignature } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey, TransactionInstruction, TransactionSignature } from '@solana/web3.js';
 import * as anchor from '@coral-xyz/anchor';
 
 import {
   buildAndSendTxnWithLogs,
   buildVersionedTransaction,
   createAssociatedTokenAccountIdempotentInstruction,
-} from '../src';
+} from '../../src';
 import { Env } from './setup_utils';
 import {
   TOKEN_PROGRAM_ID,
   createBurnInstruction,
   createInitializeMintInstruction,
   createMintToInstruction,
+  Mint,
+  getMint as getMintImpl,
 } from '@solana/spl-token';
 
 export async function createMint(
@@ -111,4 +113,8 @@ export async function mintTo(
 
   const sig = await buildAndSendTxnWithLogs(env.connection, tx, env.wallet.payer, [], undefined, 'mintTo');
   return sig;
+}
+
+export function getMint(c: Connection, address: PublicKey, tokenProgram?: PublicKey): Promise<Mint> {
+  return getMintImpl(c, address, undefined, tokenProgram);
 }

@@ -5,18 +5,18 @@ import {
   deposit,
   makeReserveConfigWithBorrowFeeAndTakeRate,
   newUser,
-} from './setup_utils';
+} from './runner/setup_utils';
 import { U64_MAX, VanillaObligation, getRepayWithCollSwapInputs, sleep } from '../src';
-import { repayWithCollTestAdapter } from './repay_with_coll_utils';
+import { repayWithCollTestAdapter } from './runner/repay_with_coll_utils';
 import { Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
-import { getPriceMock } from './leverage_utils';
+import { getPriceMock } from './runner/leverage_utils';
 import { assert } from 'chai';
-import { assertFuzzyEq, assertSwapInputsMatch } from './assert';
+import { assertFuzzyEq, assertSwapInputsMatch } from './runner/assert';
 import { Fraction } from '../src/classes/fraction';
 import { lamportsToNumberDecimal } from '../src/classes/utils';
-import { updateMarketReferralFeeBps, updateReserve, updateReserveSingleValue } from './setup_operations';
+import { updateMarketReferralFeeBps, updateReserve, updateReserveSingleValue } from './runner/setup_operations';
 import { UpdateConfigMode } from '../src/idl_codegen/types';
-import { initializeFarmsForReserve } from './farms_operations';
+import { initializeFarmsForReserve } from './runner/farms/farms_operations';
 
 describe('Repay with collateral SDK tests', function () {
   it('repay_with_coll_partial_non_sol', async function () {

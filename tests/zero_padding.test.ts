@@ -1,4 +1,4 @@
-import { createMarketWithLoan } from './setup_utils';
+import { createMarketWithLoan } from './runner/setup_utils';
 import { expect } from 'chai';
 import { BN } from '@coral-xyz/anchor';
 import { Obligation, ObligationZP } from '../src';

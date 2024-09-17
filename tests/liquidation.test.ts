@@ -4,13 +4,13 @@ import {
   deposit,
   newUser,
   sendTransactionsFromAction,
-} from './setup_utils';
+} from './runner/setup_utils';
 import { KaminoAction, VanillaObligation } from '../src';
 import { sleep } from '@hubbleprotocol/farms-sdk';
 import Decimal from 'decimal.js';
-import { updateReserve } from './setup_operations';
+import { updateReserve } from './runner/setup_operations';
 import { ReserveConfig } from '../src/idl_codegen/types';
-import { waitUntilMatches } from './assert';
+import { waitUntilMatches } from './runner/assert';
 import { expect } from 'chai';
 import { PublicKey } from '@solana/web3.js';
 

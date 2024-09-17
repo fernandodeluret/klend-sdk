@@ -1,5 +1,11 @@
-import { borrow, createMarketWithLoan, createMarketWithTwoReservesToppedUp, deposit, newUser } from './setup_utils';
-import { updateReserve } from './setup_operations';
+import {
+  borrow,
+  createMarketWithLoan,
+  createMarketWithTwoReservesToppedUp,
+  deposit,
+  newUser,
+} from './runner/setup_utils';
+import { updateReserve } from './runner/setup_operations';
 import { fuzzyEq, newFlat, sleep } from '../src';
 import { assert, expect } from 'chai';
 import { INITIAL_COLLATERAL_RATE } from '../src/utils';

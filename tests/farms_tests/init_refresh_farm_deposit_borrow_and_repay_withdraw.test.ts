@@ -8,7 +8,7 @@ import {
   makeReserveConfig,
   newUser,
   sendTransactionsFromAction,
-} from '../setup_utils';
+} from '../runner/setup_utils';
 import {
   KaminoAction,
   KaminoMarket,
@@ -20,14 +20,14 @@ import {
   KaminoObligation,
   DEFAULT_RECENT_SLOT_DURATION_MS,
 } from '../../src';
-import { getObligationFarmState, initializeFarmsForReserve } from '../farms_operations';
+import { getObligationFarmState, initializeFarmsForReserve } from '../runner/farms/farms_operations';
 import { assert } from 'chai';
 import { Keypair, TransactionInstruction } from '@solana/web3.js';
 import { fuzzyEq } from '../../src/leverage/calcs';
 import { numberToLamportsDecimal } from '../../src/classes/utils';
-import { createMarket, createReserve, updateReserve } from '../setup_operations';
+import { createMarket, createReserve, updateReserve } from '../runner/setup_operations';
 import { NATIVE_MINT } from '@solana/spl-token';
-import { createAta, createMint, mintTo } from '../token_utils';
+import { createAta, createMint, mintTo } from '../runner/token_utils';
 
 describe('init_and_refresh_farm_deposit_borrow_and_repay_withdraw_tests', function () {
   it('init_refresh_farm_deposit_borrow_and_repay_withdraw_coll_farm_only', async function () {

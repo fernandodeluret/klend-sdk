@@ -1,7 +1,7 @@
 import { OracleType, Scope } from '@hubbleprotocol/scope-sdk';
-import { createMarket, createReserve, updateReserve } from './setup_operations';
-import { DefaultConfigParams, initEnv, makeReserveConfig, sendTransactionsFromAction } from './setup_utils';
-import { createAta, createMint, mintTo } from './token_utils';
+import { createMarket, createReserve, updateReserve } from './runner/setup_operations';
+import { DefaultConfigParams, initEnv, makeReserveConfig, sendTransactionsFromAction } from './runner/setup_utils';
+import { createAta, createMint, mintTo } from './runner/token_utils';
 import {
   DEFAULT_RECENT_SLOT_DURATION_MS,
   KaminoAction,

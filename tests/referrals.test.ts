@@ -8,8 +8,8 @@ import {
   makeReserveConfigWithBorrowFeeAndTakeRate,
   newUser,
   sendTransactionsFromAction,
-} from './setup_utils';
-import { createMarket, createReserve, updateMarketReferralFeeBps, updateReserve } from './setup_operations';
+} from './runner/setup_utils';
+import { createMarket, createReserve, updateMarketReferralFeeBps, updateReserve } from './runner/setup_operations';
 import {
   KaminoAction,
   KaminoMarket,
@@ -30,13 +30,13 @@ import {
   getUserLutAddressAndSetupIxns,
   sendAndConfirmVersionedTransaction,
 } from '../src/utils';
-import { createAta, createMint, mintTo } from './token_utils';
+import { createAta, createMint, mintTo } from './runner/token_utils';
 import { assert } from 'chai';
 import { Keypair, LAMPORTS_PER_SOL, PublicKey } from '@solana/web3.js';
 import { LendingMarket } from '../src/idl_codegen/accounts/LendingMarket';
 import { NATIVE_MINT } from '@solana/spl-token';
 import Decimal from 'decimal.js';
-import { depositLeverageTestAdapter, getPriceMock } from './leverage_utils';
+import { depositLeverageTestAdapter, getPriceMock } from './runner/leverage_utils';
 import {
   getReferrerForShortUrl,
   getReferrerShortUrl,

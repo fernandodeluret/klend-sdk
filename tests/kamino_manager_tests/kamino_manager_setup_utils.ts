@@ -13,8 +13,8 @@ import {
   ReserveAllocationConfig,
   ReserveWithAddress,
 } from '../../src';
-import { Env, pythMSolPrice, pythUsdcPrice } from '../setup_utils';
-import { createMint } from '../token_utils';
+import { Env, pythMSolPrice, pythUsdcPrice } from '../runner/setup_utils';
+import { createMint } from '../runner/token_utils';
 import { PublicKey } from '@solana/web3.js';
 import Decimal from 'decimal.js';
 

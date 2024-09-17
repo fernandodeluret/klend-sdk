@@ -444,7 +444,7 @@ export const getDepositWithLeverageIxns = async (props: {
     lendingMarketAddress: kaminoMarket.getAddress(),
     reserve: !collIsKtoken ? collReserve! : debtReserve!,
     amountLamports: toLamports(
-      !collIsKtoken ? calcs.flashBorrowInCollToken : calcsKtoken.flashBorrowInDebtToken,
+      !collIsKtoken ? calcs.flashBorrowInCollToken : calcsKtoken!.flashBorrowInDebtToken,
       !collIsKtoken ? collReserve!.stats.decimals : debtReserve!.stats.decimals
     ),
     destinationAta: !collIsKtoken ? collTokenAta : debtTokenAta,
@@ -455,7 +455,7 @@ export const getDepositWithLeverageIxns = async (props: {
 
   console.log(
     'Borrowing: ',
-    toLamports(!collIsKtoken ? calcs.debtTokenToBorrow : calcsKtoken.debtTokenToBorrow, debtReserve!.stats.decimals)
+    toLamports(!collIsKtoken ? calcs.debtTokenToBorrow : calcsKtoken!.debtTokenToBorrow, debtReserve!.stats.decimals)
       .ceil()
       .toString()
   );
@@ -475,11 +475,11 @@ export const getDepositWithLeverageIxns = async (props: {
 
   const kaminoDepositAndBorrowAction = await KaminoAction.buildDepositAndBorrowTxns(
     kaminoMarket,
-    toLamports(!collIsKtoken ? calcs.collTokenToDeposit : calcsKtoken.collTokenToDeposit, collReserve!.stats.decimals)
+    toLamports(!collIsKtoken ? calcs.collTokenToDeposit : calcsKtoken!.collTokenToDeposit, collReserve!.stats.decimals)
       .floor()
       .toString(),
     collTokenMint,
-    toLamports(!collIsKtoken ? calcs.debtTokenToBorrow : calcsKtoken.debtTokenToBorrow, debtReserve!.stats.decimals)
+    toLamports(!collIsKtoken ? calcs.debtTokenToBorrow : calcsKtoken!.debtTokenToBorrow, debtReserve!.stats.decimals)
       .ceil()
       .toString(),
     debtTokenMint,
@@ -496,9 +496,9 @@ export const getDepositWithLeverageIxns = async (props: {
 
   console.log(
     'Expected to swap in',
-    !collIsKtoken ? calcs.swapDebtTokenIn.toNumber().toString() : calcsKtoken.singleSidedDeposit.toNumber().toString(),
+    !collIsKtoken ? calcs.swapDebtTokenIn.toNumber().toString() : calcsKtoken!.singleSidedDeposit.toNumber().toString(),
     'debt for',
-    !collIsKtoken ? calcs.swapCollTokenExpectedOut.toString() : calcsKtoken.requiredCollateral.toNumber().toString(),
+    !collIsKtoken ? calcs.swapCollTokenExpectedOut.toString() : calcsKtoken!.requiredCollateral.toNumber().toString(),
     'coll'
   );
 
@@ -548,11 +548,11 @@ export const getDepositWithLeverageIxns = async (props: {
     let futureBalanceInAta = new Decimal(0);
     if (debtTokenMint.equals(WRAPPED_SOL_MINT)) {
       futureBalanceInAta = futureBalanceInAta.add(
-        !collIsKtoken ? calcs.initDepositInSol : calcsKtoken.initDepositInSol
+        !collIsKtoken ? calcs.initDepositInSol : calcsKtoken!.initDepositInSol
       );
     }
     futureBalanceInAta = futureBalanceInAta.add(
-      !collIsKtoken ? calcs.debtTokenToBorrow : calcsKtoken.flashBorrowInDebtToken
+      !collIsKtoken ? calcs.debtTokenToBorrow : calcsKtoken!.flashBorrowInDebtToken
     );
     expectedDebtTokenAtaBalance = await getExpectedTokenBalanceAfterBorrow(
       connection,
@@ -565,7 +565,7 @@ export const getDepositWithLeverageIxns = async (props: {
 
   const swapInputs: SwapInputs = {
     inputAmountLamports: toLamports(
-      !collIsKtoken ? calcs.swapDebtTokenIn : calcsKtoken.singleSidedDeposit,
+      !collIsKtoken ? calcs.swapDebtTokenIn : calcsKtoken!.singleSidedDeposit,
       debtReserve!.stats.decimals
     )
       .ceil()

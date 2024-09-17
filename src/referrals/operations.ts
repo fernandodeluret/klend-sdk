@@ -307,9 +307,13 @@ export async function getReferralsRanking(connection: Connection, kaminoMarket: 
  * Get ReferralRank array of all referrers ordered by how much they've earned in USD
  * @param connection
  * @param user
- * @param programId
+ * @param kaminoMarket
  */
-export async function getUserReferralRanking(connection: Connection, user: PublicKey, kaminoMarket: KaminoMarket) {
+export async function getUserReferralRanking(
+  connection: Connection,
+  user: PublicKey,
+  kaminoMarket: KaminoMarket
+): Promise<number | undefined> {
   const referralsRanking = await getReferralsRanking(connection, kaminoMarket);
 
   for (let index = 0; index < referralsRanking.length; index++) {
@@ -317,4 +321,5 @@ export async function getUserReferralRanking(connection: Connection, user: Publi
       return index + 1;
     }
   }
+  return undefined;
 }

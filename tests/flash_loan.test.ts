@@ -3,8 +3,8 @@ import { flashBorrowReserveLiquidity, flashRepayReserveLiquidity, PROGRAM_ID } f
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { BN } from 'bn.js';
 import { buildAndSendTxnWithLogs, buildVersionedTransaction } from '../src/utils';
-import { createMarketWithLoan } from './setup_utils';
-import { createAta } from './token_utils';
+import { createMarketWithLoan } from './runner/setup_utils';
+import { createAta } from './runner/token_utils';
 import { sleep } from '@hubbleprotocol/farms-sdk';
 
 describe('flash loan', () => {

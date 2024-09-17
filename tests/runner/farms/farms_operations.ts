@@ -6,10 +6,17 @@ import {
   TransactionSignature,
   VersionedTransaction,
 } from '@solana/web3.js';
-import { Env } from './setup_utils';
-import { initFarmsForReserve, KaminoObligation, LendingMarket, lendingMarketAuthPda, Reserve, sleep } from '../src';
-import { ReserveFarmKind } from '../src/idl_codegen/types';
-import { buildAndSendTxnWithLogs, buildVersionedTransaction } from '../src/utils';
+import { Env } from '../setup_utils';
+import {
+  initFarmsForReserve,
+  KaminoObligation,
+  LendingMarket,
+  lendingMarketAuthPda,
+  Reserve,
+  sleep,
+} from '../../../src';
+import { ReserveFarmKind } from '../../../src/idl_codegen/types';
+import { buildAndSendTxnWithLogs, buildVersionedTransaction } from '../../../src/utils';
 import Decimal from 'decimal.js';
 import { FarmConfigOption, Farms, farmsId, getFarmAuthorityPDA, UserState } from '@hubbleprotocol/farms-sdk';
 import base58 from 'bs58';

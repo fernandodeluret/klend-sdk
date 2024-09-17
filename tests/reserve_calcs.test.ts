@@ -1,6 +1,6 @@
 import { BN } from '@coral-xyz/anchor';
 import { expect } from 'chai';
-import { testCurve, testKaminoReserve } from './setup_utils';
+import { testCurve, testKaminoReserve } from './runner/setup_utils';
 
 describe('reserve_calcs', function () {
   it('reserve_calculate_estimated_and_stale_supply', async function () {

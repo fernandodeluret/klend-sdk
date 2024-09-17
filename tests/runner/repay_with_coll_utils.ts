@@ -8,7 +8,7 @@ import {
   getUserLutAddressAndSetupIxns,
   sendAndConfirmVersionedTransaction,
   sleep,
-} from '../src';
+} from '../../src';
 import Decimal from 'decimal.js';
 import { getLocalSwapper } from './leverage_utils';
 

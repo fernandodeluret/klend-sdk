@@ -146,22 +146,22 @@ export function getObligationTypeFromObligation(
     }
     case MultiplyObligation.tag: {
       return new MultiplyObligation(
-        obligation.deposits[0].mintAddress,
-        obligation.borrows[0].mintAddress,
+        obligation.getDeposits()[0].mintAddress,
+        obligation.getBorrows()[0].mintAddress,
         kaminoMarket.programId
       );
       break;
     }
     case LeverageObligation.tag: {
       return new LeverageObligation(
-        obligation.deposits[0].mintAddress,
-        obligation.borrows[0].mintAddress,
+        obligation.getDeposits()[0].mintAddress,
+        obligation.getBorrows()[0].mintAddress,
         kaminoMarket.programId
       );
       break;
     }
     case LendingObligation.tag: {
-      return new LendingObligation(obligation.deposits[0].mintAddress, kaminoMarket.programId);
+      return new LendingObligation(obligation.getDeposits()[0].mintAddress, kaminoMarket.programId);
       break;
     }
     default: {

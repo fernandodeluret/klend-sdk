@@ -24,7 +24,7 @@ import {
   updateReserveLiquidationLtv,
   updateReserveLtv,
   updateReserveUtilizationCap,
-} from './setup_operations';
+} from './runner/setup_operations';
 import {
   addReserveToMarket,
   balances,
@@ -35,8 +35,8 @@ import {
   newUser,
   repay,
   sendTransactionsFromAction,
-} from './setup_utils';
-import { createScopeFeed } from './kamino/scope';
+} from './runner/setup_utils';
+import { createScopeFeed } from './runner/kamino/scope';
 import { collToLamportsDecimal, sleep } from '@kamino-finance/kliquidity-sdk';
 import {
   BorrowCapsAndCounters,
@@ -48,7 +48,7 @@ import {
   VanillaObligation,
 } from '../src';
 import Decimal from 'decimal.js';
-import { assertFuzzyEq } from './assert';
+import { assertFuzzyEq } from './runner/assert';
 
 describe('isolated_and_cross_modes', () => {
   it('switch elevation group back and forth between 0 (default) and elevated one', async () => {

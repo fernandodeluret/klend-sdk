@@ -6,7 +6,7 @@ import {
   newUser,
   deposit,
   sendTransactionsFromAction,
-} from './setup_utils';
+} from './runner/setup_utils';
 import { assert, expect } from 'chai';
 import { BN } from '@coral-xyz/anchor';
 import {
@@ -22,9 +22,9 @@ import {
 } from '../src';
 import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
 import { sleep } from '@hubbleprotocol/farms-sdk';
-import { updateReserve, updateReserveSingleValue } from './setup_operations';
+import { updateReserve, updateReserveSingleValue } from './runner/setup_operations';
 import Decimal from 'decimal.js';
-import { waitUntilMatches } from './assert';
+import { waitUntilMatches } from './runner/assert';
 import { UpdateConfigMode } from '../src/idl_codegen/types';
 
 describe('obligation', function () {

@@ -8,16 +8,16 @@ import {
   numberToLamportsDecimal,
   sleep,
 } from '../../src';
-import { getObligationFarmState, initializeFarmsForReserve } from '../farms_operations';
+import { getObligationFarmState, initializeFarmsForReserve } from '../runner/farms/farms_operations';
 import {
   borrow,
   createMarketWithTwoReservesToppedUp,
   deposit,
   newUser,
   sendTransactionsFromAction,
-} from '../setup_utils';
+} from '../runner/setup_utils';
 import Decimal from 'decimal.js';
-import { reloadReservesAndRefreshMarket, updateReserveSingleValue } from '../setup_operations';
+import { reloadReservesAndRefreshMarket, updateReserveSingleValue } from '../runner/setup_operations';
 import { UpdateConfigMode } from '../../src/idl_codegen/types';
 
 describe('init_and_refresh_farm_repay_tests', function () {
