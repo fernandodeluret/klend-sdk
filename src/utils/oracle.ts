@@ -1,8 +1,7 @@
 import { parsePriceData } from '@pythnetwork/client';
 import { AccountInfo, Connection, PublicKey } from '@solana/web3.js';
 import Decimal from 'decimal.js';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import { OraclePrices, Scope } from '@hubbleprotocol/scope-sdk';
+import { OraclePrices, Scope } from '@kamino-finance/scope-sdk';
 import { isNotNullPubkey, PubkeyHashMap, PublicKeySet } from './pubkey';
 import { parseTokenSymbol } from '../classes';
 import SwitchboardProgram from '@switchboard-xyz/sbv2-lite';

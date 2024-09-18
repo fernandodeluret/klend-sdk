@@ -1,4 +1,4 @@
-import { OracleType, Scope } from '@hubbleprotocol/scope-sdk';
+import { OracleType, Scope } from '@kamino-finance/scope-sdk';
 import { createMarket, createReserve, updateReserve } from './runner/setup_operations';
 import { DefaultConfigParams, initEnv, makeReserveConfig, sendTransactionsFromAction } from './runner/setup_utils';
 import { createAta, createMint, mintTo } from './runner/token_utils';

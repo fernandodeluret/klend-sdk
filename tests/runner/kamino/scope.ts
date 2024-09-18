@@ -1,4 +1,4 @@
-import { OracleType, Scope, U16_MAX } from '@hubbleprotocol/scope-sdk';
+import { OracleType, Scope, U16_MAX } from '@kamino-finance/scope-sdk';
 import { PublicKey } from '@solana/web3.js';
 import { StrategyWithAddress } from '@kamino-finance/kliquidity-sdk';
 import Decimal from 'decimal.js';

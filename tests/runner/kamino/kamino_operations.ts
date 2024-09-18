@@ -38,7 +38,7 @@ import { CollateralToken, collateralTokenToNumber } from './token-utils';
 import { initializeWhirlpool } from './orca';
 import { initializeRaydiumPool } from './raydium';
 import { addScopePriceMapping, crankAndFetchScopePrice } from './scope';
-import { Scope } from '@hubbleprotocol/scope-sdk';
+import { Scope } from '@kamino-finance/scope-sdk';
 import { Price, PriceFeed } from './price';
 import { Env } from '../setup_utils';
 import {

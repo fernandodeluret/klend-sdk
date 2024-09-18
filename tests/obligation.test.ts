@@ -21,7 +21,7 @@ import {
   VanillaObligation,
 } from '../src';
 import { PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY } from '@solana/web3.js';
-import { sleep } from '@hubbleprotocol/farms-sdk';
+import { sleep } from '@kamino-finance/farms-sdk';
 import { updateReserve, updateReserveSingleValue } from './runner/setup_operations';
 import Decimal from 'decimal.js';
 import { waitUntilMatches } from './runner/assert';

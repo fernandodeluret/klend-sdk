@@ -50,9 +50,9 @@
     "@bokuweb/zstd-wasm": "^0.0.20",
     "@coral-xyz/anchor": "^0.28.0",
     "@coral-xyz/borsh": "^0.28.0",
-    "@hubbleprotocol/farms-sdk": "^1.0.3",
-    "@hubbleprotocol/scope-sdk": "^5.0.20",
-    "@kamino-finance/kliquidity-sdk": "^6.1.0",
+    "@kamino-finance/farms-sdk": "^2.0.3",
+    "@kamino-finance/scope-sdk": "^8.0.2",
+    "@kamino-finance/kliquidity-sdk": "^6.2.1",
     "@pythnetwork/client": "^2.5.1",
     "@solana/buffer-layout": "^4.0.0",
     "@solana/spl-token": "^0.4.8",
@@ -101,8 +101,8 @@
     "typescript-eslint": "^0.0.1-alpha.0"
   },
   "resolutions": {
-    "@kamino-finance/kliquidity-sdk": "^6.1.0",
-    "@hubbleprotocol/farms-sdk": "^1.0.3"
+    "@kamino-finance/farms-sdk": "^2.0.3",
+    "@kamino-finance/kliquidity-sdk": "^6.2.1"
   },
   "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
 }

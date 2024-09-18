@@ -64,11 +64,11 @@ import { KaminoMarket } from './market';
 import { KaminoObligation } from './obligation';
 import { KaminoReserve } from './reserve';
 import { ReserveFarmKind } from '../idl_codegen/types';
-import { farmsId } from '@hubbleprotocol/farms-sdk';
+import { farmsId } from '@kamino-finance/farms-sdk';
 import { Reserve } from '../idl_codegen/accounts';
 import { VanillaObligation } from '../utils/ObligationType';
 import { PROGRAM_ID } from '../lib';
-import { U16_MAX } from '@hubbleprotocol/scope-sdk';
+import { U16_MAX } from '@kamino-finance/scope-sdk';
 
 export const POSITION_LIMIT = 10;
 export const BORROWS_LIMIT = 5;

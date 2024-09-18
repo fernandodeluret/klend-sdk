@@ -1,16 +1,12 @@
 import {
-  KaminoAction,
-  PROGRAM_ID,
-  VanillaObligation,
   buildVersionedTransaction,
   sendAndConfirmVersionedTransaction,
 } from '@kamino-finance/klend-sdk';
 import { getConnection } from './utils/connection';
 import { getKeypair } from './utils/keypair';
 import { MAIN_MARKET, PYUSD_MINT } from './utils/constants';
-import BN from 'bn.js';
 import { loadReserveData } from './utils/helpers';
-import { Farms } from '@hubbleprotocol/farms-sdk';
+import { Farms } from '@kamino-finance/farms-sdk';
 
 (async () => {
   const connection = getConnection();

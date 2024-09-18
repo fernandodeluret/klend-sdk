@@ -21,7 +21,7 @@ import {
   UserMetadata,
   PublicKeySet,
 } from '../lib';
-import { farmsId } from '@hubbleprotocol/farms-sdk';
+import { farmsId } from '@kamino-finance/farms-sdk';
 import { KaminoReserve } from '../classes/reserve';
 
 export type KaminoUserMetadata = {

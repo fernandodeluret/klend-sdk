@@ -7,8 +7,8 @@ import {
   lamportsToNumberDecimal,
 } from '@kamino-finance/klend-sdk';
 import Decimal from 'decimal.js';
-import { FarmState, RewardInfo } from '@hubbleprotocol/farms-sdk';
-import { Scope } from '@hubbleprotocol/scope-sdk';
+import { FarmState, RewardInfo } from '@kamino-finance/farms-sdk';
+import { Scope } from '@kamino-finance/scope-sdk';
 import { aprToApy, KaminoPrices } from '@kamino-finance/kliquidity-sdk';
 import { PublicKey } from '@solana/web3.js';
 

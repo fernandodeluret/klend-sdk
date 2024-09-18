@@ -24,10 +24,10 @@ import {
 import base58 from 'bs58';
 import { BN } from '@coral-xyz/anchor';
 import Decimal from 'decimal.js';
-import { FarmState } from '@hubbleprotocol/farms-sdk';
+import { FarmState } from '@kamino-finance/farms-sdk';
 import { PROGRAM_ID } from '../idl_codegen/programId';
 import bs58 from 'bs58';
-import { OraclePrices, Scope } from '@hubbleprotocol/scope-sdk';
+import { OraclePrices, Scope } from '@kamino-finance/scope-sdk';
 import { Fraction } from './fraction';
 import { chunks, KaminoPrices, MintToPriceMap } from '@kamino-finance/kliquidity-sdk';
 import { parseTokenSymbol } from './utils';

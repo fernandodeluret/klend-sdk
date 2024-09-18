@@ -5,7 +5,7 @@ import { BN } from 'bn.js';
 import { buildAndSendTxnWithLogs, buildVersionedTransaction } from '../src/utils';
 import { createMarketWithLoan } from './runner/setup_utils';
 import { createAta } from './runner/token_utils';
-import { sleep } from '@hubbleprotocol/farms-sdk';
+import { sleep } from '@kamino-finance/farms-sdk';
 
 describe('flash loan', () => {
   it('empty_flash_loan', async () => {

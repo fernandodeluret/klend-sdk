@@ -1,8 +1,4 @@
 import { ReserveArgs } from './utils/models';
-import Decimal from 'decimal.js';
-import { FarmState, RewardInfo } from '@hubbleprotocol/farms-sdk';
-import { Scope } from '@hubbleprotocol/scope-sdk';
-import { PublicKey } from '@solana/web3.js';
 import { getConnection } from './utils/connection';
 import { MAIN_MARKET, PYUSD_MINT } from './utils/constants';
 import { getReserveRewardsApy, loadReserveData } from './utils/helpers';

@@ -889,6 +889,31 @@
   resolved "https://registry.yarnpkg.com/@jup-ag/api/-/api-6.0.27.tgz#6d6f2e0d438124837dd83d55f3fbd18a5fa10b2b"
   integrity sha512-Y6UwtmYVCjrwlejP+ZEJtIxtRIm7Fp+fgEbIdg3N8+BbX/Qi4fVHOF8wg4q2/pq8i4kZufcDaS5s6c/no4IQzg==
 
+"@kamino-finance/farms-sdk@^2.0.3":
+  version "2.0.3"
+  resolved "https://registry.yarnpkg.com/@kamino-finance/farms-sdk/-/farms-sdk-2.0.3.tgz#b8d0c789391f2673b3a373cda4cc94b8b2b6c559"
+  integrity sha512-0OECaz5O6JWQc1XCla11hhBXIkn0lI7UWG+pVkYxQaab0WRzbMNrv5WghvW8jIaGnJunhk31uUtRoUqCEghA7Q==
+  dependencies:
+    "@coral-xyz/anchor" "^0.28.0"
+    "@coral-xyz/borsh" "^0.28.0"
+    "@hubbleprotocol/scope-sdk" "^5.0.20"
+    "@kamino-finance/klend-sdk" "^3.2.0"
+    "@kamino-finance/kliquidity-sdk" "^6.1.0"
+    "@project-serum/serum" "^0.13.61"
+    "@solana/spl-token" "^0.1.8"
+    "@solana/web3.js" "^1.93.2"
+    base58-js "1.0.5"
+    bn.js "^5.2.1"
+    bs58 "^4.0.1"
+    chai-as-promised "^7.1.1"
+    ci "^2.2.0"
+    cli-color "^2.0.4"
+    commander "^9.3.0"
+    decimal.js "^10.4.3"
+    decimal.js-light "2.5.1"
+    fast-check "^3.1.1"
+    nyc "^15.1.0"
+
 "@kamino-finance/klend-sdk@^3.2.0":
   version "3.2.26"
   resolved "https://registry.yarnpkg.com/@kamino-finance/klend-sdk/-/klend-sdk-3.2.26.tgz#3dc59ba3df04aeb2e47f15950028bd7c9c6e613a"
@@ -913,7 +938,7 @@
     decimal.js "^10.4.3"
     exponential-backoff "^3.1.1"
 
-"@kamino-finance/kliquidity-sdk@^6.1.0":
+"@kamino-finance/kliquidity-sdk@^6.1.0", "@kamino-finance/kliquidity-sdk@^6.2.1":
   version "6.2.1"
   resolved "https://registry.yarnpkg.com/@kamino-finance/kliquidity-sdk/-/kliquidity-sdk-6.2.1.tgz#9ab4c5666889513775de62babf8dcb4026b7a4a0"
   integrity sha512-RRnXFlrhz3Go4/FDpy/yrdbt13b6supT64vP6RuF4+X2NyHebESw8CSsOi+AkOQZwFASheMalORrezxOvsE3UA==
@@ -931,6 +956,17 @@
     axios "^1.2.6"
     bn.js "^5.2.1"
     bs58 "^6.0.0"
+    decimal.js "^10.3.1"
+
+"@kamino-finance/scope-sdk@^8.0.2":
+  version "8.0.2"
+  resolved "https://registry.yarnpkg.com/@kamino-finance/scope-sdk/-/scope-sdk-8.0.2.tgz#4d455af1b3dff03c34a86fd638efeef4797d65bc"
+  integrity sha512-sAk55REz9bJknQXYYld+IdXdhYechw1esaPU9372P7n1oUSdkGRCFjbKUhrxyFy80/br79UbBlAEUYhyop3B0Q==
+  dependencies:
+    "@coral-xyz/anchor" "^0.29.0"
+    "@solana/buffer-layout" "^4.0.1"
+    "@solana/web3.js" "^1.78.4"
+    bn.js "^5.2.1"
     decimal.js "^10.3.1"
 
 "@metaplex-foundation/mpl-core@^0.0.2":

@@ -39,7 +39,7 @@ import * as anchor from '@coral-xyz/anchor';
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { UpdateBorrowRateCurve } from '../idl_codegen/types/UpdateConfigMode';
 import { aprToApy, KaminoPrices } from '@kamino-finance/kliquidity-sdk';
-import { FarmState, RewardInfo } from '@hubbleprotocol/farms-sdk';
+import { FarmState, RewardInfo } from '@kamino-finance/farms-sdk';
 
 export const DEFAULT_RECENT_SLOT_DURATION_MS = 450;
 

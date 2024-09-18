@@ -18,7 +18,7 @@ import {
 import { ReserveFarmKind } from '../../../src/idl_codegen/types';
 import { buildAndSendTxnWithLogs, buildVersionedTransaction } from '../../../src/utils';
 import Decimal from 'decimal.js';
-import { FarmConfigOption, Farms, farmsId, getFarmAuthorityPDA, UserState } from '@hubbleprotocol/farms-sdk';
+import { FarmConfigOption, Farms, farmsId, getFarmAuthorityPDA, UserState } from '@kamino-finance/farms-sdk';
 import base58 from 'bs58';
 import { base64 } from '@coral-xyz/anchor/dist/cjs/utils/bytes';
 

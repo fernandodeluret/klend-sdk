@@ -1,5 +1,5 @@
 import { PublicKey } from '@solana/web3.js';
-import { OracleType, OracleTypeKind } from '@hubbleprotocol/scope-sdk';
+import { OracleType, OracleTypeKind } from '@kamino-finance/scope-sdk';
 
 const PRICE_MAPPING: Record<Price, PriceFeed> = {
   SOL_USD_1: {

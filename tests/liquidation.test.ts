@@ -6,7 +6,7 @@ import {
   sendTransactionsFromAction,
 } from './runner/setup_utils';
 import { KaminoAction, VanillaObligation } from '../src';
-import { sleep } from '@hubbleprotocol/farms-sdk';
+import { sleep } from '@kamino-finance/farms-sdk';
 import Decimal from 'decimal.js';
 import { updateReserve } from './runner/setup_operations';
 import { ReserveConfig } from '../src/idl_codegen/types';

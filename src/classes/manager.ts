@@ -34,7 +34,7 @@ import {
   UpdateLendingMarketOwnerAccounts,
 } from '../lib';
 import { PROGRAM_ID } from '../idl_codegen/programId';
-import { Scope, TokenMetadatas, U16_MAX } from '@hubbleprotocol/scope-sdk';
+import { Scope, TokenMetadatas, U16_MAX } from '@kamino-finance/scope-sdk';
 import BN from 'bn.js';
 import { ElevationGroup, ReserveConfig, UpdateLendingMarketMode } from '../idl_codegen/types';
 import Decimal from 'decimal.js';

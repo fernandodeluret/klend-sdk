@@ -17,7 +17,7 @@ import { Fraction, ZERO_FRACTION } from '../classes/fraction';
 import BN from 'bn.js';
 import { numberToLamportsDecimal } from '../classes';
 import { NULL_PUBKEY } from './pubkey';
-import { OracleType, U16_MAX } from '@hubbleprotocol/scope-sdk';
+import { OracleType, U16_MAX } from '@kamino-finance/scope-sdk';
 import { LendingMarket } from '../lib';
 
 export type ScopeOracleConfig = {

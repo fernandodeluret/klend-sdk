@@ -11,7 +11,7 @@ import Decimal from 'decimal.js';
 import { DEFAULT_RECENT_SLOT_DURATION_MS, KaminoAction, KaminoMarket, PROGRAM_ID, Reserve } from '../../src';
 import { sleep, VanillaObligation } from '../../src';
 import { PublicKey } from '@solana/web3.js';
-import { FarmState } from '@hubbleprotocol/farms-sdk';
+import { FarmState } from '@kamino-finance/farms-sdk';
 import * as assert from 'assert';
 
 describe('farming_lending_market', function () {

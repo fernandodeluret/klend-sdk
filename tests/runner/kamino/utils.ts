@@ -20,7 +20,7 @@ import {
   sendTransactionWithLogs,
   TOKEN_PROGRAM_ID,
 } from '@kamino-finance/kliquidity-sdk';
-import { U16_MAX } from '@hubbleprotocol/scope-sdk';
+import { U16_MAX } from '@kamino-finance/scope-sdk';
 import { CollateralToken, collateralTokenToNumber } from './token-utils';
 import { Env } from '../setup_utils';
 

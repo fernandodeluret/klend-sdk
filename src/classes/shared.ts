@@ -1,6 +1,6 @@
 import { PublicKey } from '@solana/web3.js';
 import Decimal from 'decimal.js';
-import { FarmState, RewardInfo } from '@hubbleprotocol/farms-sdk';
+import { FarmState, RewardInfo } from '@kamino-finance/farms-sdk';
 
 export type ConfigType = Array<MarketConfigType>;
 

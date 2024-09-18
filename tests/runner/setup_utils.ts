@@ -76,7 +76,7 @@ import {
   setUpCollateralInfo,
   setUpGlobalConfig,
 } from './kamino/kamino_operations';
-import { OracleType, Scope, U16_MAX } from '@hubbleprotocol/scope-sdk';
+import { OracleType, Scope, U16_MAX } from '@kamino-finance/scope-sdk';
 import { addKTokenScopePriceMapping, createScopeFeed } from './kamino/scope';
 import { Kamino } from '@kamino-finance/kliquidity-sdk';
 import { Fraction, ZERO_FRACTION } from '../../src/classes/fraction';
