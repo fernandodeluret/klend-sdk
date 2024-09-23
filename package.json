@@ -31,6 +31,7 @@
     "build": "rm -rf dist/; tsc",
     "build:test": "yarn tsc --project ./tests/tsconfig.json",
     "test": "npx ts-mocha tests/**/*.test.ts --exit",
+    "setup": "npx ts-mocha tests/setup2.test.ts --exit",
     "watch": "tsc --watch",
     "coverage": "jest --coverage",
     "clean": "rm -rf dist/",

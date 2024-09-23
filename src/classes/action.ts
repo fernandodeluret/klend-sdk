@@ -2310,6 +2310,7 @@ export class KaminoAction {
     if (!this.obligation) {
       const obligationPda = this.getObligationPda();
       const [userMetadataAddress, _bump] = userMetadataPda(this.owner, this.kaminoMarket.programId);
+
       const initObligationIx = initObligation(
         {
           args: {
@@ -2343,6 +2344,8 @@ export class KaminoAction {
     const referrerUserMetadataAddress = this.referrer.equals(PublicKey.default)
       ? this.kaminoMarket.programId
       : userMetadataPda(this.referrer, this.kaminoMarket.programId)[0];
+
+    console.log(`referrerUserMetadataAddress: ${referrerUserMetadataAddress.toBase58()}`);
     const initUserMetadataIx = initUserMetadata(
       {
         userLookupTable: lookupTableAddress,

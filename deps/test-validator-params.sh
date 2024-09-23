@@ -72,7 +72,7 @@ function print_args {
   echo "--clone GMprgtqUv2G74GAFHhHhrH21n1cnnNZcPb6TAz5GhqU"
 
   # options
-  echo "--reset --quiet -u m"
+  echo "--reset -u m"
 }
 
 print_args

@@ -36,13 +36,18 @@ import { TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { ElevationGroupFields, ReserveConfig, UpdateConfigMode } from '../../src/idl_codegen/types';
 import { BN } from '@coral-xyz/anchor';
 import { createAddExtraComputeUnitsIx } from '@kamino-finance/kliquidity-sdk';
+import fs from 'fs';
 
 export async function createMarket(env: Env): Promise<[TransactionSignature, Keypair]> {
   const args: InitLendingMarketArgs = {
     quoteCurrency: Array(32).fill(0),
   };
 
-  const marketAccount = Keypair.generate();
+  const secretKey = JSON.parse(fs.readFileSync('tests/runner/lendingMarketKeypair.json', 'utf8'));
+  const marketAccount = Keypair.fromSecretKey(Uint8Array.from(secretKey));
+  console.log('marketWallet: ', marketAccount.publicKey.toBase58());
+  // const marketAccount = Keypair.generate();
+
   const size = LendingMarket.layout.span + 8;
   const [lendingMarketAuthority, _] = lendingMarketAuthPda(marketAccount.publicKey, env.program.programId);
   const createMarketIx = SystemProgram.createAccount({
